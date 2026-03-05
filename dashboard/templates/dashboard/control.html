@@ -14,55 +14,6 @@
                 </button>
             </div>
             <div class="card-body">
-                <!-- Start Session Modal -->
-                <div class="modal fade" id="startSessionModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Start New Bot Session</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <form method="post">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="start">
-                                    <div class="mb-3">
-                                        <label class="form-label">Session Configuration</label>
-                                        <div class="card bg-light">
-                                            <div class="card-body">
-                                                <div class="d-flex justify-content-between">
-                                                    <div>
-                                                        <div class="fw-medium">Live Stream URL</div>
-                                                        <small class="text-muted">https://www.tiktok.com/@khamish92/live</small>
-                                                    </div>
-                                                    <div class="text-end">
-                                                        <div class="fw-medium">Viewers</div>
-                                                        <small class="text-muted">3</small>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="mb-3">
-                                        <label class="form-label">Additional Options</label>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="enableLogging" checked>
-                                            <label class="form-check-label" for="enableLogging">Enable detailed logging</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" id="captureScreenshots">
-                                            <label class="form-check-label" for="captureScreenshots">Capture screenshots for debugging</label>
-                                        </div>
-                                    </div>
-                                    <button type="submit" class="btn btn-success w-100">
-                                        <i class="bi bi-play-circle me-2"></i>Start Session
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- Active Sessions -->
                 <h6 class="mb-3">Active Sessions</h6>
                 {% if active_sessions %}
@@ -219,6 +170,55 @@
                         <div class="text-muted small">System availability</div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Start Session Modal - placed outside all .dashboard-card divs to prevent CSS stacking context blinking -->
+<div class="modal fade" id="startSessionModal" tabindex="-1" aria-labelledby="startSessionModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="startSessionModalLabel">Start New Bot Session</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="start">
+                    <div class="mb-3">
+                        <label class="form-label">Session Configuration</label>
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between">
+                                    <div>
+                                        <div class="fw-medium">Live Stream URL</div>
+                                        <small class="text-muted">https://www.tiktok.com/@khamish92/live</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-medium">Viewers</div>
+                                        <small class="text-muted">3</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Additional Options</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enableLogging" checked>
+                            <label class="form-check-label" for="enableLogging">Enable detailed logging</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="captureScreenshots">
+                            <label class="form-check-label" for="captureScreenshots">Capture screenshots for debugging</label>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">
+                        <i class="bi bi-play-circle me-2"></i>Start Session
+                    </button>
+                </form>
             </div>
         </div>
     </div>
