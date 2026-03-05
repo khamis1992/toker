@@ -3,6 +3,56 @@
 {% block title %}Session {{ session.session_id }} Details - TikTok Bot{% endblock %}
 {% block page_title %}Session Details{% endblock %}
 
+{% block extra_scripts %}
+<script>
+// Auto-refresh viewer data every 5 seconds
+setInterval(function() {
+    fetch('{% url "dashboard:api_session_data" session.session_id %}')
+        .then(response => response.json())
+        .then(data => {
+            // Update session status
+            document.getElementById('session-status').textContent = data.status;
+            document.getElementById('success-count').textContent = data.success_count;
+            document.getElementById('error-count').textContent = data.error_count;
+            
+            // Update viewers table
+            const tbody = document.getElementById('viewers-table-body');
+            if (tbody && data.viewers) {
+                tbody.innerHTML = '';
+                data.viewers.forEach(function(viewer) {
+                    const row = `
+                        <tr>
+                            <td>
+                                <div>Viewer-${viewer.viewer_id}</div>
+                                <small class="text-muted">#${viewer.id}</small>
+                            </td>
+                            <td>
+                                <span class="badge badge-dashboard bg-${viewer.status === 'running' ? 'success' : viewer.status === 'completed' ? 'primary' : viewer.status === 'failed' ? 'danger' : 'secondary'}">
+                                    ${viewer.status.charAt(0).toUpperCase() + viewer.status.slice(1)}
+                                </span>
+                            </td>
+                            <td>
+                                ${viewer.proxy_used ? `<div>${viewer.proxy_used.proxy_url.substring(0, 25)}...</div><small class="text-muted">${viewer.proxy_used.id}</small>` : '<span class="text-muted">None</span>'}
+                            </td>
+                            <td>${viewer.comments_sent}</td>
+                            <td>${viewer.reactions_made}</td>
+                            <td>${new Date(viewer.start_time).toLocaleTimeString()}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary" title="View Details">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+            }
+        })
+        .catch(error => console.error('Error fetching data:', error));
+}, 5000);
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="row">
     <div class="col-12">

@@ -444,16 +444,27 @@ def bot_control(request):
                 config = BotConfiguration(created_by=request.user)
                 config.save()
             
+            session_id = str(uuid.uuid4())[:8]
             session = BotSession.objects.create(
-                session_id=str(uuid.uuid4())[:8],
+                session_id=session_id,
                 configuration=config,
                 status='started',
                 viewers_count=config.num_viewers,
             )
             
-            # Here we would actually start the bot process
-            # For now, we'll just simulate it
-            messages.success(request, f'Bot session {session.session_id} started!')
+            # Actually start the bot process in the background
+            try:
+                from bot_management.task_runner import start_bot_session
+                success = start_bot_session(session_id, config.id)
+                
+                if success:
+                    session.status = 'running'
+                    session.save()
+                    messages.success(request, f'Bot session {session_id} started with {config.num_viewers} viewers!')
+                else:
+                    messages.warning(request, f'Session created but failed to start bot process. Session ID: {session_id}')
+            except Exception as e:
+                messages.warning(request, f'Session created but background process failed: {str(e)}. Session ID: {session_id}')
             
         elif action == 'stop':
             # Stop a session
@@ -504,6 +515,40 @@ def session_detail(request, session_id):
     }
     
     return render(request, 'dashboard/session_detail.html', context)
+
+
+@login_required
+def api_session_data(request, session_id):
+    """API endpoint to get real-time session and viewer data."""
+    try:
+        session = BotSession.objects.get(session_id=session_id)
+        viewers = Viewer.objects.filter(session=session)
+        
+        data = {
+            'status': session.status,
+            'success_count': session.success_count,
+            'error_count': session.error_count,
+            'viewers_count': session.viewers_count,
+            'viewers': [
+                {
+                    'id': viewer.id,
+                    'viewer_id': viewer.viewer_id,
+                    'status': viewer.status,
+                    'proxy_used': {
+                        'id': viewer.proxy_used.id,
+                        'proxy_url': viewer.proxy_used.proxy_url,
+                    } if viewer.proxy_used else None,
+                    'comments_sent': viewer.comments_sent,
+                    'reactions_made': viewer.reactions_made,
+                    'start_time': viewer.start_time.isoformat(),
+                }
+                for viewer in viewers
+            ]
+        }
+        
+        return JsonResponse(data)
+    except BotSession.DoesNotExist:
+        return JsonResponse({'error': 'Session not found'}, status=404)
 
 
 @csrf_exempt
