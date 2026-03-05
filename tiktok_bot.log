@@ -153,3 +153,182 @@ Call log:
 2026-03-05 15:16:32,448 - INFO - Viewer 3: Loading page...
 2026-03-05 15:16:32,449 - INFO - Viewer 2: Loading page...
 2026-03-05 15:16:32,450 - INFO - Viewer 1: Loading page...
+2026-03-05 15:58:21,176 - INFO - Viewer 1: Starting session
+2026-03-05 15:58:21,177 - INFO - Viewer 2: Starting session
+2026-03-05 15:58:21,177 - INFO - Viewer 3: Starting session
+2026-03-05 15:58:21,523 - INFO - Viewer 2: Using proxy http://16.78.119.130:443
+2026-03-05 15:58:21,523 - INFO - Viewer 2: Starting browser...
+2026-03-05 15:58:21,548 - INFO - Viewer 3: Using proxy http://61.158.175.38:9002
+2026-03-05 15:58:21,548 - INFO - Viewer 3: Starting browser...
+2026-03-05 15:58:21,554 - INFO - Viewer 1: Using proxy http://185.166.24.191:1981
+2026-03-05 15:58:21,554 - INFO - Viewer 1: Starting browser...
+2026-03-05 15:58:21,707 - INFO - Viewer 2: Loading page...
+2026-03-05 15:58:21,719 - INFO - Viewer 3: Loading page...
+2026-03-05 15:58:21,720 - INFO - Viewer 1: Loading page...
+2026-03-05 15:58:23,489 - INFO - Viewer 3: Browser closed
+2026-03-05 15:58:23,489 - ERROR - Viewer 3: Session failed: Viewer 3: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 15:58:26,763 - INFO - Viewer 1: Browser closed
+2026-03-05 15:58:26,763 - ERROR - Viewer 1: Session failed: Viewer 1: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 15:58:49,470 - INFO - Viewer 2: Page loaded (status: 200)
+2026-03-05 15:58:57,531 - INFO - Viewer 2: Browser closed
+2026-03-05 15:58:57,532 - ERROR - Viewer 2: Session failed: Viewer 2: Live stream has ended
+2026-03-05 16:02:09,771 - INFO - Viewer 1: Starting session
+2026-03-05 16:02:09,772 - INFO - Viewer 2: Starting session
+2026-03-05 16:02:09,772 - INFO - Viewer 3: Starting session
+2026-03-05 16:02:10,131 - INFO - Viewer 1: Using proxy http://12.50.107.221:80
+2026-03-05 16:02:10,131 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:02:10,140 - INFO - Viewer 2: Using proxy http://143.42.66.91:80
+2026-03-05 16:02:10,140 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:02:10,149 - INFO - Viewer 3: Using proxy http://23.153.217.115:5555
+2026-03-05 16:02:10,149 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:02:10,325 - INFO - Viewer 1: Loading page...
+2026-03-05 16:02:10,327 - INFO - Viewer 2: Loading page...
+2026-03-05 16:02:10,329 - INFO - Viewer 3: Loading page...
+2026-03-05 16:02:12,339 - INFO - Viewer 2: Browser closed
+2026-03-05 16:02:12,339 - ERROR - Viewer 2: Session failed: Viewer 2: Failed to load page: Page.goto: net::ERR_TUNNEL_CONNECTION_FAILED at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:02:12,343 - INFO - Viewer 2: Starting session
+2026-03-05 16:02:12,687 - INFO - Viewer 2: Using proxy http://12.50.107.221:80
+2026-03-05 16:02:12,687 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:02:12,822 - INFO - Viewer 2: Loading page...
+2026-03-05 16:02:14,126 - INFO - Viewer 2: Browser closed
+2026-03-05 16:02:14,126 - ERROR - Viewer 2: Session failed: Viewer 2: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:02:14,131 - INFO - Viewer 2: Starting session
+2026-03-05 16:02:14,472 - INFO - Viewer 2: Using proxy http://23.153.217.115:5555
+2026-03-05 16:02:14,472 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:02:14,617 - INFO - Viewer 2: Loading page...
+2026-03-05 16:02:15,373 - INFO - Viewer 1: Browser closed
+2026-03-05 16:02:15,373 - ERROR - Viewer 1: Session failed: Viewer 1: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:02:15,377 - INFO - Viewer 3: Browser closed
+2026-03-05 16:02:15,377 - ERROR - Viewer 3: Session failed: Viewer 3: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:02:15,380 - INFO - Viewer 1: Starting session
+2026-03-05 16:02:15,383 - INFO - Viewer 3: Starting session
+2026-03-05 16:02:15,728 - INFO - Viewer 1: Using proxy http://143.42.66.91:80
+2026-03-05 16:02:15,728 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:02:15,732 - INFO - Viewer 3: Using proxy http://12.50.107.221:80
+2026-03-05 16:02:15,733 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:02:15,884 - INFO - Viewer 3: Loading page...
+2026-03-05 16:02:15,889 - INFO - Viewer 1: Loading page...
+2026-03-05 16:02:17,663 - INFO - Viewer 1: Browser closed
+2026-03-05 16:02:17,663 - ERROR - Viewer 1: Session failed: Viewer 1: Failed to load page: Page.goto: net::ERR_TUNNEL_CONNECTION_FAILED at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:02:17,667 - INFO - Viewer 1: Starting session
+2026-03-05 16:02:18,015 - INFO - Viewer 1: Using proxy http://23.153.217.115:5555
+2026-03-05 16:02:18,015 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:02:18,140 - INFO - Viewer 1: Loading page...
+2026-03-05 16:02:18,176 - INFO - Viewer 3: Browser closed
+2026-03-05 16:02:18,176 - ERROR - Viewer 3: Session failed: Viewer 3: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:02:18,180 - INFO - Viewer 3: Starting session
+2026-03-05 16:02:18,521 - INFO - Viewer 3: Using proxy http://143.42.66.91:80
+2026-03-05 16:02:18,521 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:02:18,672 - INFO - Viewer 3: Loading page...
+2026-03-05 16:02:20,379 - INFO - Viewer 3: Browser closed
+2026-03-05 16:02:20,379 - ERROR - Viewer 3: Session failed: Viewer 3: Failed to load page: Page.goto: net::ERR_TUNNEL_CONNECTION_FAILED at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:02:23,182 - INFO - Viewer 1: Browser closed
+2026-03-05 16:02:23,183 - ERROR - Viewer 1: Session failed: Viewer 1: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:02:42,004 - INFO - Viewer 2: Page loaded (status: 200)
+2026-03-05 16:02:50,070 - INFO - Viewer 2: Browser closed
+2026-03-05 16:02:50,070 - ERROR - Viewer 2: Session failed: Viewer 2: Live stream has ended
+2026-03-05 16:04:56,772 - INFO - Viewer 1: Starting session
+2026-03-05 16:04:56,772 - INFO - Viewer 2: Starting session
+2026-03-05 16:04:56,772 - INFO - Viewer 3: Starting session
+2026-03-05 16:04:57,114 - INFO - Viewer 1: Using proxy http://45.140.147.82:1081
+2026-03-05 16:04:57,114 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:04:57,134 - INFO - Viewer 2: Using proxy http://116.80.82.217:3172
+2026-03-05 16:04:57,134 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:04:57,140 - INFO - Viewer 3: Using proxy http://152.26.229.52:9443
+2026-03-05 16:04:57,140 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:04:57,304 - INFO - Viewer 2: Loading page...
+2026-03-05 16:04:57,311 - INFO - Viewer 1: Loading page...
+2026-03-05 16:04:57,314 - INFO - Viewer 3: Loading page...
+2026-03-05 16:04:58,355 - INFO - Viewer 3: Browser closed
+2026-03-05 16:04:58,355 - ERROR - Viewer 3: Session failed: Viewer 3: Failed to load page: Page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:04:58,359 - INFO - Viewer 3: Starting session
+2026-03-05 16:04:58,688 - INFO - Viewer 3: Using proxy http://45.140.147.82:1081
+2026-03-05 16:04:58,688 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:04:58,815 - INFO - Viewer 3: Loading page...
+2026-03-05 16:05:02,358 - INFO - Viewer 1: Browser closed
+2026-03-05 16:05:02,358 - ERROR - Viewer 1: Session failed: Viewer 1: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:05:02,360 - INFO - Viewer 2: Browser closed
+2026-03-05 16:05:02,360 - ERROR - Viewer 2: Session failed: Viewer 2: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:05:02,366 - INFO - Viewer 1: Starting session
+2026-03-05 16:05:02,368 - INFO - Viewer 2: Starting session
+2026-03-05 16:05:02,704 - INFO - Viewer 1: Using proxy http://116.80.82.217:3172
+2026-03-05 16:05:02,704 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:05:02,706 - INFO - Viewer 2: Using proxy http://45.140.147.82:1081
+2026-03-05 16:05:02,706 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:05:02,860 - INFO - Viewer 1: Loading page...
+2026-03-05 16:05:02,865 - INFO - Viewer 2: Loading page...
+2026-03-05 16:05:13,404 - INFO - Viewer 1: Page loaded (status: 200)
+2026-03-05 16:05:21,462 - INFO - Viewer 1: Browser closed
+2026-03-05 16:05:21,462 - ERROR - Viewer 1: Session failed: Viewer 1: Live stream has ended
+2026-03-05 16:05:21,467 - INFO - Viewer 1: Starting session
+2026-03-05 16:05:21,820 - INFO - Viewer 1: Using proxy http://152.26.229.52:9443
+2026-03-05 16:05:21,820 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:05:21,952 - INFO - Viewer 1: Loading page...
+2026-03-05 16:05:23,035 - INFO - Viewer 1: Browser closed
+2026-03-05 16:05:23,035 - ERROR - Viewer 1: Session failed: Viewer 1: Failed to load page: Page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:05:39,252 - INFO - Viewer 2: Browser closed
+2026-03-05 16:05:39,253 - ERROR - Viewer 2: Session failed: Viewer 2: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:05:39,256 - INFO - Viewer 2: Starting session
+2026-03-05 16:05:39,440 - INFO - Viewer 3: Browser closed
+2026-03-05 16:05:39,440 - ERROR - Viewer 3: Session failed: Viewer 3: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:05:39,444 - INFO - Viewer 3: Starting session
+2026-03-05 16:05:39,597 - INFO - Viewer 2: Using proxy http://152.26.229.52:9443
+2026-03-05 16:05:39,597 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:05:39,714 - INFO - Viewer 2: Loading page...
+2026-03-05 16:05:39,786 - INFO - Viewer 3: Using proxy http://116.80.82.217:3172
+2026-03-05 16:05:39,786 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:05:39,906 - INFO - Viewer 3: Loading page...
+2026-03-05 16:05:40,780 - INFO - Viewer 2: Browser closed
+2026-03-05 16:05:40,780 - ERROR - Viewer 2: Session failed: Viewer 2: Failed to load page: Page.goto: net::ERR_CERT_AUTHORITY_INVALID at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:05:57,617 - INFO - Viewer 3: Page loaded (status: 200)

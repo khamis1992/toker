@@ -143,79 +143,89 @@ class Command(BaseCommand):
         # ---------------------------------------------------------------
         # Resolve proxy list based on the user-selected proxy_source
         # ---------------------------------------------------------------
-        active_proxies = []
+        proxy_pool = []  # list of proxy URL strings to rotate through
 
         if proxy_source == 'packetstream':
-            # Use the PacketStream paid proxy (single rotating endpoint)
             ps = await sync_to_async(PacketStreamSettings.get_settings)()
             if ps.is_enabled and ps.username and ps.cik:
                 ps_url = ps.get_proxy_url()
                 # Every viewer gets the same PacketStream endpoint (it rotates IPs internally)
-                active_proxies = [ps_url] * config.num_viewers
+                proxy_pool = [ps_url] * config.num_viewers
                 self.stdout.write(
                     self.style.SUCCESS(f'Using PacketStream proxy: {ps.host}:{ps.port} for {config.num_viewers} viewers.')
                 )
             else:
                 self.stdout.write(
-                    self.style.ERROR('PacketStream selected but credentials are not configured. Falling back to direct connection.')
+                    self.style.ERROR('PacketStream selected but credentials are not configured. Running direct.')
                 )
 
         elif proxy_source == 'free':
-            # Load free proxies from the database
-            active_proxies = await sync_to_async(self._get_free_proxies)()
-            if active_proxies:
-                proxy_manager.proxies = active_proxies
-                self.stdout.write(
-                    self.style.SUCCESS(f'Loaded {len(active_proxies)} free proxies from database.')
+            raw_proxies = await sync_to_async(self._get_free_proxies)()
+            if raw_proxies:
+                # Validate proxies against TikTok specifically — test up to 60 proxies
+                # to find enough working ones (TikTok blocks many free proxies)
+                test_count = min(len(raw_proxies), 60)
+                self.stdout.write(self.style.WARNING(
+                    f'Validating {test_count} proxies against TikTok...'
+                ))
+                validated = await self._validate_proxies(
+                    raw_proxies[:test_count],
+                    max_good=config.num_viewers * 5,
+                    test_url='https://www.tiktok.com',
                 )
-            else:
-                # Fall back to proxies.txt (only for free-type entries)
-                proxy_manager._load_proxies()
-                if proxy_manager.proxies:
-                    active_proxies = proxy_manager.proxies
-                    self.stdout.write(
-                        self.style.WARNING(
-                            f'No free DB proxies found. Loaded {len(active_proxies)} proxies from proxies.txt.'
-                        )
-                    )
+                if validated:
+                    proxy_pool = validated
+                    self.stdout.write(self.style.SUCCESS(
+                        f'Found {len(validated)} TikTok-compatible proxies out of {test_count} tested.'
+                    ))
                 else:
-                    self.stdout.write(
-                        self.style.WARNING(
-                            'No free proxies available. Running without proxies (direct connection).'
-                        )
+                    # Fall back: try a broader test (any connectivity)
+                    self.stdout.write(self.style.WARNING(
+                        'No TikTok-compatible proxies found. Trying general connectivity test...'
+                    ))
+                    validated = await self._validate_proxies(
+                        raw_proxies[:test_count],
+                        max_good=config.num_viewers * 5,
+                        test_url='http://www.google.com',
                     )
+                    if validated:
+                        proxy_pool = validated
+                        self.stdout.write(self.style.WARNING(
+                            f'Using {len(validated)} general proxies (TikTok may block some).'
+                        ))
+                    else:
+                        self.stdout.write(self.style.WARNING(
+                            'No working free proxies found. Running direct.'
+                        ))
+            else:
+                self.stdout.write(self.style.WARNING('No free proxies in DB. Running direct.'))
 
         else:  # proxy_source == 'none'
-            self.stdout.write(
-                self.style.WARNING('Running with no proxy (direct connection). May be detected by TikTok.')
-            )
+            self.stdout.write(self.style.WARNING('Running with no proxy (direct connection).'))
 
         # ---------------------------------------------------------------
-        # Create viewer tasks
+        # Create viewer tasks — each viewer gets a proxy from the pool
         # ---------------------------------------------------------------
         tasks = []
         viewer_records = []
 
         for i in range(config.num_viewers):
-            # Assign a proxy from the pool (round-robin)
-            if proxy_source == 'packetstream' and active_proxies:
-                # All viewers share the same PacketStream endpoint
-                proxy = active_proxies[0]
-            elif proxy_source == 'free' and active_proxies:
-                proxy = proxy_manager.get_proxy()
-            else:
-                proxy = None
+            # Assign proxy round-robin from validated pool
+            proxy = proxy_pool[i % len(proxy_pool)] if proxy_pool else None
 
             viewer = TikTokViewer(viewer_id=i + 1, proxy=proxy)
 
-            # Use get_or_create to avoid duplicates (view already pre-created the records)
+            # Get or create the viewer DB record (view may have pre-created it)
             viewer_record = await sync_to_async(self._get_or_create_viewer_record)(session, i + 1, proxy)
             viewer_records.append(viewer_record)
 
-            task = viewer.start(config.live_url)
+            # Mark viewer as "connecting" so the dashboard shows activity immediately
+            await sync_to_async(self._update_viewer_status)(viewer_record, 'connecting', '')
+
+            task = self._run_viewer_with_status(viewer, config.live_url, viewer_record, proxy_pool, i)
             tasks.append(task)
 
-            # Stagger viewer start times slightly
+            # Stagger viewer start times slightly to avoid simultaneous browser launches
             await asyncio.sleep(2)
 
         # ---------------------------------------------------------------
@@ -243,14 +253,85 @@ class Command(BaseCommand):
 
         await sync_to_async(self._update_session_results)(session, success_count, error_count, 'completed', log_text)
 
-        for i, result in enumerate(results):
-            status = 'completed' if result is True else 'failed'
-            error_msg = str(result) if isinstance(result, Exception) else ''
-            await sync_to_async(self._update_viewer_status)(viewer_records[i], status, error_msg)
-
         self.stdout.write(
             self.style.SUCCESS(f'Session completed. {success_count} successful, {error_count} failed.')
         )
+
+    async def _run_viewer_with_status(self, viewer, live_url, viewer_record, proxy_pool, viewer_index):
+        """
+        Run a single viewer, updating its DB status in real time.
+        If the proxy fails, retry with the next proxy in the pool.
+        """
+        max_proxy_retries = min(3, len(proxy_pool)) if proxy_pool else 1
+        tried_proxies = set()
+
+        current_proxy = viewer.proxy
+        if current_proxy:
+            tried_proxies.add(current_proxy)
+
+        for attempt in range(max_proxy_retries):
+            result = await viewer.start(live_url)
+
+            if result is True:
+                # Viewer successfully connected — mark as active
+                await sync_to_async(self._update_viewer_status)(viewer_record, 'active', '')
+                return True
+            else:
+                # Failed — try a different proxy if available
+                next_proxy = None
+                for p in proxy_pool:
+                    if p not in tried_proxies:
+                        next_proxy = p
+                        tried_proxies.add(p)
+                        break
+
+                if next_proxy and attempt < max_proxy_retries - 1:
+                    self.stdout.write(
+                        self.style.WARNING(
+                            f'Viewer {viewer.viewer_id}: Proxy failed, retrying with different proxy (attempt {attempt + 2}/{max_proxy_retries})'
+                        )
+                    )
+                    viewer.proxy = next_proxy
+                    # Update the proxy on the viewer record
+                    await sync_to_async(self._update_viewer_proxy)(viewer_record, next_proxy)
+                    await sync_to_async(self._update_viewer_status)(viewer_record, 'retrying', '')
+                else:
+                    break
+
+        # All attempts failed
+        await sync_to_async(self._update_viewer_status)(viewer_record, 'failed', 'All proxy attempts failed')
+        return False
+
+    async def _validate_proxies(self, proxy_list, max_good=10, timeout=10, test_url='https://www.tiktok.com'):
+        """
+        Quickly test proxies by making a GET request through each one.
+        Returns a list of working proxy URLs (up to max_good).
+        """
+        import aiohttp
+
+        async def test_one(proxy_url):
+            try:
+                connector = aiohttp.TCPConnector(ssl=False)
+                async with aiohttp.ClientSession(connector=connector) as sess:
+                    async with sess.get(
+                        test_url,
+                        proxy=proxy_url,
+                        timeout=aiohttp.ClientTimeout(total=timeout),
+                        allow_redirects=True,
+                        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+                    ) as resp:
+                        # Accept any 2xx or 3xx response as working
+                        if resp.status < 500:
+                            return proxy_url
+            except Exception:
+                pass
+            return None
+
+        # Run all tests concurrently
+        tasks = [test_one(p) for p in proxy_list]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        good = [r for r in results if isinstance(r, str)]
+        return good[:max_good]
 
     # ------------------------------------------------------------------
     # Sync helper methods (called via sync_to_async)
@@ -275,24 +356,30 @@ class Command(BaseCommand):
             defaults={'status': 'starting', 'proxy_used': proxy_obj},
         )
         if not created and proxy_obj and viewer_record.proxy_used is None:
-            # Update the proxy on the existing record
             viewer_record.proxy_used = proxy_obj
             viewer_record.save()
         return viewer_record
 
+    def _update_viewer_proxy(self, viewer_record, proxy_url):
+        """Update the proxy on a viewer record."""
+        proxy_obj = Proxy.objects.filter(proxy_url=proxy_url).first()
+        viewer_record.proxy_used = proxy_obj
+        viewer_record.save()
+
     def _update_session_results(self, session, success_count, error_count, status, log_text=''):
-        from datetime import datetime
+        from django.utils import timezone
         session.success_count = success_count
         session.error_count = error_count
         session.status = status
-        session.end_time = datetime.now()
+        session.end_time = timezone.now()
         if log_text:
             existing = session.logs or ''
             session.logs = (existing + '\n' + log_text).strip()
         session.save()
 
     def _update_viewer_status(self, viewer_record, status, error_msg=''):
-        from datetime import datetime
+        from django.utils import timezone
         viewer_record.status = status
-        viewer_record.end_time = datetime.now()
+        if status in ('completed', 'failed'):
+            viewer_record.end_time = timezone.now()
         viewer_record.save()

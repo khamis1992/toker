@@ -9,6 +9,7 @@ import uuid
 import os
 import logging
 from datetime import datetime
+from django.utils import timezone
 from bot_management.models import BotConfiguration, Proxy, BotSession, Viewer, ProxyAutoFetchSettings, PacketStreamSettings
 
 logger = logging.getLogger(__name__)
@@ -559,7 +560,7 @@ def bot_control(request):
             try:
                 session = BotSession.objects.get(session_id=session_id)
                 session.status = 'stopped'
-                session.end_time = datetime.now()
+                session.end_time = timezone.now()
                 session.save()
                 # Also try to kill the background process
                 try:
