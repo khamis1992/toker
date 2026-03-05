@@ -332,3 +332,73 @@ Call log:
   - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
 
 2026-03-05 16:05:57,617 - INFO - Viewer 3: Page loaded (status: 200)
+2026-03-05 16:06:05,675 - INFO - Viewer 3: Browser closed
+2026-03-05 16:06:05,675 - ERROR - Viewer 3: Session failed: Viewer 3: Live stream has ended
+2026-03-05 16:16:37,999 - INFO - Viewer 1: Starting session
+2026-03-05 16:16:37,999 - INFO - Viewer 2: Starting session
+2026-03-05 16:16:37,999 - INFO - Viewer 3: Starting session
+2026-03-05 16:16:38,351 - INFO - Viewer 3: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 16:16:38,351 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:16:38,365 - INFO - Viewer 1: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 16:16:38,365 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:16:38,379 - INFO - Viewer 2: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 16:16:38,379 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:16:38,502 - INFO - Viewer 3: Loading page...
+2026-03-05 16:16:38,519 - INFO - Viewer 1: Loading page...
+2026-03-05 16:16:38,549 - INFO - Viewer 2: Loading page...
+2026-03-05 16:17:38,536 - INFO - Viewer 3: Browser closed
+2026-03-05 16:17:38,537 - ERROR - Viewer 3: Session failed: Viewer 3: Timeout loading page: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:17:38,548 - INFO - Viewer 1: Browser closed
+2026-03-05 16:17:38,548 - ERROR - Viewer 1: Session failed: Viewer 1: Timeout loading page: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:17:38,578 - INFO - Viewer 2: Browser closed
+2026-03-05 16:17:38,578 - ERROR - Viewer 2: Session failed: Viewer 2: Timeout loading page: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:19:19,854 - INFO - Viewer 1: Starting session
+2026-03-05 16:19:19,854 - INFO - Viewer 2: Starting session
+2026-03-05 16:19:19,854 - INFO - Viewer 3: Starting session
+2026-03-05 16:19:20,206 - INFO - Viewer 2: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 16:19:20,207 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:19:20,221 - INFO - Viewer 1: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 16:19:20,222 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:19:20,242 - INFO - Viewer 3: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 16:19:20,242 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:19:20,391 - INFO - Viewer 1: Loading page...
+2026-03-05 16:19:20,393 - INFO - Viewer 2: Loading page...
+2026-03-05 16:19:20,414 - INFO - Viewer 3: Loading page...
+2026-03-05 16:20:50,395 - WARNING - Viewer 1: domcontentloaded timed out, trying commit strategy...
+2026-03-05 16:20:50,396 - WARNING - Viewer 2: domcontentloaded timed out, trying commit strategy...
+2026-03-05 16:20:50,417 - WARNING - Viewer 3: domcontentloaded timed out, trying commit strategy...
+2026-03-05 16:21:06,745 - INFO - Viewer 1: Page committed (status: 407)
+2026-03-05 16:21:06,751 - INFO - Viewer 3: Page committed (status: 407)
+2026-03-05 16:21:06,752 - INFO - Viewer 2: Page committed (status: 407)
+2026-03-05 16:23:00,697 - INFO - Viewer 1: Starting session
+2026-03-05 16:23:00,697 - INFO - Viewer 2: Starting session
+2026-03-05 16:23:00,698 - INFO - Viewer 3: Starting session
+2026-03-05 16:23:01,039 - INFO - Viewer 1: Using proxy http://proxy.packetstream.io:31112
+2026-03-05 16:23:01,039 - INFO - Viewer 1: Starting browser...
+2026-03-05 16:23:01,055 - INFO - Viewer 2: Using proxy http://proxy.packetstream.io:31112
+2026-03-05 16:23:01,055 - INFO - Viewer 2: Starting browser...
+2026-03-05 16:23:01,066 - INFO - Viewer 3: Using proxy http://proxy.packetstream.io:31112
+2026-03-05 16:23:01,067 - INFO - Viewer 3: Starting browser...
+2026-03-05 16:23:01,225 - INFO - Viewer 1: Loading page...
+2026-03-05 16:23:01,229 - INFO - Viewer 3: Loading page...
+2026-03-05 16:23:01,236 - INFO - Viewer 2: Loading page...
+2026-03-05 16:23:10,149 - INFO - Viewer 3: Page loaded (status: 200)
+2026-03-05 16:23:13,381 - INFO - Viewer 1: Browser closed
+2026-03-05 16:23:13,381 - ERROR - Viewer 1: Session failed: Viewer 1: Failed to load page: Page.goto: net::ERR_EMPTY_RESPONSE at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "domcontentloaded"
+
+2026-03-05 16:23:16,761 - INFO - Viewer 2: Page loaded (status: 200)
+2026-03-05 16:23:18,214 - INFO - Viewer 3: Browser closed
+2026-03-05 16:23:18,214 - ERROR - Viewer 3: Session failed: Viewer 3: Live stream has ended
+2026-03-05 16:23:24,855 - INFO - Viewer 2: Browser closed
+2026-03-05 16:23:24,855 - ERROR - Viewer 2: Session failed: Viewer 2: Live stream has ended

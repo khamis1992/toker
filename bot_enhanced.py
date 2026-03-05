@@ -72,12 +72,26 @@ class TikTokViewer:
                 
                 if self.proxy:
                     proxy_url = self.proxy.strip()
-                    if not proxy_url.startswith(('http://', 'https://')):
-                        parts = proxy_url.split(':')
-                        if len(parts) == 4:
-                            proxy_url = f"http://{parts[0]}:{parts[1]}@{parts[2]}:{parts[3]}"
-                    launch_options['proxy'] = {'server': proxy_url}
-                    logger.info(f"Viewer {self.viewer_id}: Using proxy {proxy_url}")
+                    # Playwright requires proxy credentials as separate fields,
+                    # NOT embedded in the URL — otherwise some proxy servers return 407.
+                    import re
+                    proxy_config = {}
+                    # Parse: http://user:pass@host:port
+                    m = re.match(r'(https?://)([^:@]+):([^@]+)@(.+)', proxy_url)
+                    if m:
+                        scheme, username, password, hostport = m.groups()
+                        proxy_config = {
+                            'server': f'{scheme}{hostport}',
+                            'username': username,
+                            'password': password,
+                        }
+                    else:
+                        # No credentials in URL
+                        if not proxy_url.startswith(('http://', 'https://')):
+                            proxy_url = f'http://{proxy_url}'
+                        proxy_config = {'server': proxy_url}
+                    launch_options['proxy'] = proxy_config
+                    logger.info(f"Viewer {self.viewer_id}: Using proxy {proxy_config['server']}")
                 
                 logger.info(f"Viewer {self.viewer_id}: Starting browser...")
                 browser = await p.chromium.launch(**launch_options)
@@ -111,18 +125,34 @@ class TikTokViewer:
                 
                 logger.info(f"Viewer {self.viewer_id}: Loading page...")
                 
-                # Go to page with better error handling
-                # Use 'domcontentloaded' instead of 'load' — TikTok live pages never
-                # fully fire the 'load' event due to continuous streaming resources.
+                # Go to page with better error handling.
+                # TikTok live pages are slow to fire domcontentloaded through proxies.
+                # Strategy: try 'domcontentloaded' first (90s), then fall back to 'commit'
+                # which fires as soon as the first byte is received.
+                response = None
                 try:
                     response = await page.goto(
                         live_url,
                         wait_until='domcontentloaded',
-                        timeout=config.page_load_timeout
+                        timeout=90000  # 90 seconds for live pages through proxy
                     )
                     logger.info(f"Viewer {self.viewer_id}: Page loaded (status: {response.status if response else 'unknown'})")
-                except PlaywrightTimeout as e:
-                    raise TikTokNetworkError(self.viewer_id, f"Timeout loading page: {e}")
+                except PlaywrightTimeout:
+                    # domcontentloaded timed out — try 'commit' (fires on first byte)
+                    logger.warning(f"Viewer {self.viewer_id}: domcontentloaded timed out, trying commit strategy...")
+                    try:
+                        response = await page.goto(
+                            live_url,
+                            wait_until='commit',
+                            timeout=30000
+                        )
+                        # Wait for React to render after commit
+                        await asyncio.sleep(15)
+                        logger.info(f"Viewer {self.viewer_id}: Page committed (status: {response.status if response else 'unknown'})")
+                    except PlaywrightTimeout as e:
+                        raise TikTokNetworkError(self.viewer_id, f"Timeout loading page: {e}")
+                    except Exception as e:
+                        raise TikTokNetworkError(self.viewer_id, f"Failed to load page: {e}")
                 except Exception as e:
                     raise TikTokNetworkError(self.viewer_id, f"Failed to load page: {e}")
 
