@@ -459,6 +459,18 @@ def bot_control(request):
                 viewers_count=config.num_viewers,
             )
 
+            # Immediately create Viewer records so the dashboard shows them right away.
+            # The background bot process will update their status as it runs.
+            active_proxies = list(Proxy.objects.filter(is_active=True))
+            for i in range(config.num_viewers):
+                proxy_obj = active_proxies[i % len(active_proxies)] if active_proxies else None
+                Viewer.objects.create(
+                    session=session,
+                    viewer_id=i + 1,
+                    proxy_used=proxy_obj,
+                    status='starting',
+                )
+
             # Actually start the bot process in the background
             try:
                 from bot_management.task_runner import start_bot_session

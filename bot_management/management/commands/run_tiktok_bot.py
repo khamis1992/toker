@@ -144,8 +144,9 @@ class Command(BaseCommand):
             viewer = TikTokViewer(viewer_id=i+1, proxy=proxy)
             viewers_list.append(viewer)
             
-            # Create viewer record in database (sync_to_async wrapper)
-            viewer_record = await sync_to_async(self._create_viewer_record)(session, i+1, proxy)
+            # Get or create viewer record in database (sync_to_async wrapper)
+            # The view may have already created the record; update it rather than duplicate.
+            viewer_record = await sync_to_async(self._get_or_create_viewer_record)(session, i+1, proxy)
             viewer_records.append(viewer_record)
             
             # Add task
@@ -185,6 +186,24 @@ class Command(BaseCommand):
     def _create_viewer_record(self, session, viewer_id, proxy):
         """Helper to create viewer record (sync)."""
         proxy_obj = Proxy.objects.filter(proxy_url=proxy).first() if proxy else None
+        return Viewer.objects.create(
+            session=session,
+            viewer_id=viewer_id,
+            proxy_used=proxy_obj,
+            status='starting'
+        )
+
+    def _get_or_create_viewer_record(self, session, viewer_id, proxy):
+        """Get existing viewer record or create a new one (prevents duplicates)."""
+        proxy_obj = Proxy.objects.filter(proxy_url=proxy).first() if proxy else None
+        # Use the earliest record if duplicates exist (created by the view)
+        existing = Viewer.objects.filter(session=session, viewer_id=viewer_id).order_by('id').first()
+        if existing:
+            # Update the proxy assignment if the bot picked a different one
+            if proxy_obj and existing.proxy_used != proxy_obj:
+                existing.proxy_used = proxy_obj
+                existing.save(update_fields=['proxy_used'])
+            return existing
         return Viewer.objects.create(
             session=session,
             viewer_id=viewer_id,
