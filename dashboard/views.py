@@ -3,10 +3,48 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
 from django.contrib import messages
+from django.db.models import Avg, Sum, Count, Q
 import json
 import uuid
+import os
+import logging
 from datetime import datetime
 from bot_management.models import BotConfiguration, Proxy, BotSession, Viewer, ProxyAutoFetchSettings
+
+logger = logging.getLogger(__name__)
+
+
+def _get_system_stats():
+    """Return real system resource usage via psutil, with safe fallback."""
+    try:
+        import psutil
+        disk = psutil.disk_usage('/')
+        disk_pct = round(disk.percent, 1)
+        mem = psutil.virtual_memory()
+        mem_pct = round(mem.percent, 1)
+        cpu_pct = round(psutil.cpu_percent(interval=0.2), 1)
+        uptime_seconds = int(datetime.now().timestamp() - psutil.boot_time())
+        hours = uptime_seconds // 3600
+        minutes = (uptime_seconds % 3600) // 60
+        if hours >= 24:
+            uptime_str = f"{hours // 24}d {hours % 24}h"
+        elif hours > 0:
+            uptime_str = f"{hours}h {minutes}m"
+        else:
+            uptime_str = f"{minutes}m"
+        return {
+            'disk_pct': disk_pct,
+            'mem_pct': mem_pct,
+            'cpu_pct': cpu_pct,
+            'uptime': uptime_str,
+        }
+    except Exception:
+        return {
+            'disk_pct': None,
+            'mem_pct': None,
+            'cpu_pct': None,
+            'uptime': 'N/A',
+        }
 
 
 @login_required
@@ -14,24 +52,49 @@ def dashboard_home(request):
     """Main dashboard view showing overview statistics."""
     # Get recent sessions
     recent_sessions = BotSession.objects.all().order_by('-start_time')[:10]
-    
-    # Get active proxies
+
+    # Active sessions count (not completed/failed/stopped)
+    active_sessions_count = BotSession.objects.exclude(
+        status__in=['completed', 'failed', 'stopped']
+    ).count()
+
+    # Active proxies
     active_proxies = Proxy.objects.filter(is_active=True).count()
     total_proxies = Proxy.objects.count()
-    
-    # Get current configuration
+
+    # Average viewers per session
+    avg_viewers = BotSession.objects.aggregate(avg=Avg('viewers_count'))['avg']
+    avg_viewers = round(avg_viewers, 1) if avg_viewers else 0
+
+    # Overall success rate across all sessions
+    totals = BotSession.objects.aggregate(
+        total_viewers=Sum('viewers_count'),
+        total_success=Sum('success_count'),
+    )
+    total_viewers = totals['total_viewers'] or 0
+    total_success = totals['total_success'] or 0
+    success_rate = round((total_success / total_viewers * 100), 1) if total_viewers > 0 else 0
+
+    # Real-time system stats
+    sys_stats = _get_system_stats()
+
+    # Current configuration
     try:
         current_config = BotConfiguration.objects.filter(created_by=request.user).latest('updated_at')
     except BotConfiguration.DoesNotExist:
         current_config = None
-    
+
     context = {
         'recent_sessions': recent_sessions,
+        'active_sessions_count': active_sessions_count,
         'active_proxies': active_proxies,
         'total_proxies': total_proxies,
+        'avg_viewers': avg_viewers,
+        'success_rate': success_rate,
         'current_config': current_config,
+        'sys_stats': sys_stats,
     }
-    
+
     return render(request, 'dashboard/home.html', context)
 
 
@@ -48,7 +111,7 @@ def settings_view(request):
                 config = BotConfiguration(created_by=request.user)
         else:
             config = BotConfiguration(created_by=request.user)
-        
+
         # Update configuration from form data
         config.live_url = request.POST.get('live_url', config.live_url)
         config.num_viewers = int(request.POST.get('num_viewers', config.num_viewers))
@@ -65,54 +128,52 @@ def settings_view(request):
         config.debug_screenshots = request.POST.get('debug_screenshots') == 'on'
         config.screenshot_dir = request.POST.get('screenshot_dir', config.screenshot_dir)
         config.log_level = request.POST.get('log_level', config.log_level)
-        
+
         config.save()
         messages.success(request, 'Settings updated successfully!')
-        
+
         return redirect('dashboard:settings')
-    
+
     # GET request - show current settings
     try:
         current_config = BotConfiguration.objects.filter(created_by=request.user).latest('updated_at')
     except BotConfiguration.DoesNotExist:
         current_config = BotConfiguration(created_by=request.user)
-    
+
     context = {
         'current_config': current_config,
     }
-    
+
     return render(request, 'dashboard/settings.html', context)
 
 
 @login_required
 def proxy_management(request):
     """View for managing proxies."""
-    
+
     # Check if this is an AJAX request FIRST (before handling regular POST)
     is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-    
+
     # Handle AJAX POST requests - return JSON
     if is_ajax and request.method == 'POST':
         action = request.POST.get('action')
         response_data = {'success': False, 'message': 'Unknown action'}
-        
+
         if action == 'add':
-            proxy_url = request.POST.get('proxy_url')
+            proxy_url = request.POST.get('proxy_url', '').strip()
             if proxy_url:
                 try:
-                    from proxy_manager import proxy_manager
-                    if hasattr(proxy_manager, 'validate_proxy_format'):
-                        if not proxy_manager.validate_proxy_format(proxy_url):
-                            response_data = {'success': False, 'message': 'Proxy format may be incorrect. Please check the format.'}
-                        else:
-                            Proxy.objects.create(proxy_url=proxy_url, is_active=True)
-                            response_data = {'success': True, 'message': 'Proxy added successfully!'}
+                    # Check for duplicate
+                    if Proxy.objects.filter(proxy_url=proxy_url).exists():
+                        response_data = {'success': False, 'message': 'Proxy already exists in the system.'}
                     else:
                         Proxy.objects.create(proxy_url=proxy_url, is_active=True)
                         response_data = {'success': True, 'message': 'Proxy added successfully!'}
                 except Exception as e:
                     response_data = {'success': False, 'message': f'Error adding proxy: {str(e)}'}
-        
+            else:
+                response_data = {'success': False, 'message': 'Proxy URL cannot be empty.'}
+
         elif action == 'toggle':
             proxy_id = request.POST.get('proxy_id')
             try:
@@ -123,7 +184,7 @@ def proxy_management(request):
                 response_data = {'success': True, 'message': f'Proxy {status} successfully!'}
             except Proxy.DoesNotExist:
                 response_data = {'success': False, 'message': 'Proxy not found!'}
-        
+
         elif action == 'delete':
             proxy_id = request.POST.get('proxy_id')
             try:
@@ -131,37 +192,27 @@ def proxy_management(request):
                 response_data = {'success': True, 'message': 'Proxy deleted successfully!'}
             except Proxy.DoesNotExist:
                 response_data = {'success': False, 'message': 'Proxy not found!'}
-        
-        elif action == 'load_free_proxies':
-            sample_proxies = [
-                "http://192.168.1.1:8080",
-                "http://192.168.1.2:3128", 
-                "socks5://127.0.0.1:9050",
-                "http://proxy.example.com:8080"
-            ]
-            proxy_list = ", ".join(sample_proxies[:3])
-            response_data = {'success': True, 'message': f'Sample free proxies: {proxy_list}. Add them manually in the Manual Entry tab.'}
-        
+
         return JsonResponse(response_data)
-    
+
     # Handle regular (non-AJAX) POST requests - redirect after processing
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'add':
-            proxy_url = request.POST.get('proxy_url')
+            proxy_url = request.POST.get('proxy_url', '').strip()
             if proxy_url:
                 try:
-                    from proxy_manager import proxy_manager
-                    if hasattr(proxy_manager, 'validate_proxy_format'):
-                        if not proxy_manager.validate_proxy_format(proxy_url):
-                            messages.warning(request, 'Proxy format may be incorrect. Please check the format.')
-                    
-                    Proxy.objects.create(proxy_url=proxy_url, is_active=True)
-                    messages.success(request, 'Proxy added successfully!')
+                    if Proxy.objects.filter(proxy_url=proxy_url).exists():
+                        messages.warning(request, 'Proxy already exists in the system.')
+                    else:
+                        Proxy.objects.create(proxy_url=proxy_url, is_active=True)
+                        messages.success(request, 'Proxy added successfully!')
                 except Exception as e:
                     messages.error(request, f'Error adding proxy: {str(e)}')
-        
+            else:
+                messages.error(request, 'Proxy URL cannot be empty.')
+
         elif action == 'toggle':
             proxy_id = request.POST.get('proxy_id')
             try:
@@ -172,7 +223,7 @@ def proxy_management(request):
                 messages.success(request, f'Proxy {status} successfully!')
             except Proxy.DoesNotExist:
                 messages.error(request, 'Proxy not found!')
-        
+
         elif action == 'delete':
             proxy_id = request.POST.get('proxy_id')
             try:
@@ -180,88 +231,47 @@ def proxy_management(request):
                 messages.success(request, 'Proxy deleted successfully!')
             except Proxy.DoesNotExist:
                 messages.error(request, 'Proxy not found!')
-        
+
         elif action == 'test_all':
             messages.info(request, 'Proxy testing initiated. Results will appear shortly.')
-        
-        elif action == 'load_free_proxies':
-            sample_proxies = [
-                "http://192.168.1.1:8080",
-                "http://192.168.1.2:3128", 
-                "socks5://127.0.0.1:9050",
-                "http://proxy.example.com:8080"
-            ]
-            proxy_list = ", ".join(sample_proxies[:3])
-            messages.info(request, f'Sample free proxies: {proxy_list}. Add them manually in the Manual Entry tab.')
-        
+
         return redirect('dashboard:proxies')
-    
+
     # GET request
     proxies = Proxy.objects.all().order_by('-created_at')
-    
-    # Check if this is an AJAX request
-    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
-    
+
     # Get free proxy sources for context
-    try:
-        from proxy_manager import proxy_manager
-        free_sources = proxy_manager.get_free_proxy_sources() if hasattr(proxy_manager, 'get_free_proxy_sources') else []
-    except:
-        free_sources = [
-            {
-                "name": "ProxyScrape",
-                "url": "https://proxyscrape.com/free-proxy-list",
-                "description": "Community-maintained free proxy list"
-            },
-            {
-                "name": "HideMyAss",
-                "url": "https://hidemyass.com/proxy-checker",
-                "description": "Limited free tier proxy service"
-            },
-            {
-                "name": "FreeProxyLists",
-                "url": "https://free-proxy-list.net/",
-                "description": "Public proxy lists updated regularly"
-            }
-        ]
-    
+    free_sources = [
+        {
+            "name": "ProxyScrape",
+            "url": "https://proxyscrape.com/free-proxy-list",
+            "description": "Community-maintained free proxy list"
+        },
+        {
+            "name": "HideMyAss",
+            "url": "https://hidemyass.com/proxy-checker",
+            "description": "Limited free tier proxy service"
+        },
+        {
+            "name": "FreeProxyLists",
+            "url": "https://free-proxy-list.net/",
+            "description": "Public proxy lists updated regularly"
+        }
+    ]
+
     # Calculate proxy statistics
     total_proxies = proxies.count()
     active_proxies = proxies.filter(is_active=True).count()
-    
-    # Add example proxies for demonstration when no real proxies exist
-    show_examples = (total_proxies == 0)
-    example_proxies = []
-    if show_examples:
-        # Example free proxy formats for demonstration
-        example_proxies = [
-            {
-                "proxy_url": "http://example-free-proxy.com:8080",
-                "is_active": False,
-                "last_used": None,
-                "created_at": "2026-03-05",
-                "performance": 75,
-                "id": "example1"
-            },
-            {
-                "proxy_url": "socks5://127.0.0.1:9050",
-                "is_active": True,
-                "last_used": "2026-03-05",
-                "created_at": "2026-03-05",
-                "performance": 90,
-                "id": "example2"
-            }
-        ]
-    
+
     context = {
         'proxies': proxies,
         'free_proxy_sources': free_sources,
         'total_proxies': total_proxies,
         'active_proxies': active_proxies,
-        'show_examples': show_examples,
-        'example_proxies': example_proxies,
+        'show_examples': False,  # Never show fake example proxies
+        'example_proxies': [],
     }
-    
+
     return render(request, 'dashboard/proxies.html', context)
 
 
@@ -277,7 +287,6 @@ def api_fetch_free_proxies(request):
 
     try:
         if source == 'proxyscrape':
-            # ProxyScrape public API - returns plain text ip:port list
             url = 'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all&limit=50'
             r = req.get(url, timeout=10)
             r.raise_for_status()
@@ -285,7 +294,6 @@ def api_fetch_free_proxies(request):
             proxies = [f'http://{line}' for line in lines if ':' in line]
 
         elif source == 'geonode':
-            # GeoNode public API - returns JSON
             url = 'https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&protocols=http,https'
             r = req.get(url, timeout=10)
             r.raise_for_status()
@@ -299,7 +307,6 @@ def api_fetch_free_proxies(request):
                     proxies.append(f'{proto}://{ip}:{port}')
 
         elif source == 'freeproxylist':
-            # free-proxy-list.net - HTML scraping
             url = 'https://free-proxy-list.net/'
             headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
             r = req.get(url, timeout=10, headers=headers)
@@ -435,7 +442,7 @@ def bot_control(request):
     """View for controlling bot sessions."""
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+
         if action == 'start':
             # Create a new session
             try:
@@ -443,7 +450,7 @@ def bot_control(request):
             except BotConfiguration.DoesNotExist:
                 config = BotConfiguration(created_by=request.user)
                 config.save()
-            
+
             session_id = str(uuid.uuid4())[:8]
             session = BotSession.objects.create(
                 session_id=session_id,
@@ -451,12 +458,12 @@ def bot_control(request):
                 status='started',
                 viewers_count=config.num_viewers,
             )
-            
+
             # Actually start the bot process in the background
             try:
                 from bot_management.task_runner import start_bot_session
                 success = start_bot_session(session_id, config.id)
-                
+
                 if success:
                     session.status = 'running'
                     session.save()
@@ -465,7 +472,7 @@ def bot_control(request):
                     messages.warning(request, f'Session created but failed to start bot process. Session ID: {session_id}')
             except Exception as e:
                 messages.warning(request, f'Session created but background process failed: {str(e)}. Session ID: {session_id}')
-            
+
         elif action == 'stop':
             # Stop a session
             session_id = request.POST.get('session_id')
@@ -474,15 +481,33 @@ def bot_control(request):
                 session.status = 'stopped'
                 session.end_time = datetime.now()
                 session.save()
+                # Also try to kill the background process
+                try:
+                    from bot_management.task_runner import stop_bot_session
+                    stop_bot_session(session_id)
+                except Exception:
+                    pass
                 messages.success(request, f'Session {session_id} stopped!')
             except BotSession.DoesNotExist:
                 messages.error(request, 'Session not found!')
-        
+
         return redirect('dashboard:control')
-    
+
     # GET request
     active_sessions = BotSession.objects.exclude(status__in=['completed', 'failed', 'stopped'])
     recent_sessions = BotSession.objects.all().order_by('-start_time')[:10]
+
+    # Compute real success rate and uptime from DB
+    totals = BotSession.objects.aggregate(
+        total_viewers=Sum('viewers_count'),
+        total_success=Sum('success_count'),
+    )
+    total_viewers = totals['total_viewers'] or 0
+    total_success = totals['total_success'] or 0
+    overall_success_rate = round((total_success / total_viewers * 100), 1) if total_viewers > 0 else 0
+
+    # Real uptime
+    sys_stats = _get_system_stats()
 
     # Load the latest saved configuration so the modal shows real values
     try:
@@ -494,8 +519,10 @@ def bot_control(request):
         'active_sessions': active_sessions,
         'recent_sessions': recent_sessions,
         'current_config': current_config,
+        'overall_success_rate': overall_success_rate,
+        'sys_uptime': sys_stats['uptime'],
     }
-    
+
     return render(request, 'dashboard/control.html', context)
 
 
@@ -508,12 +535,12 @@ def session_detail(request, session_id):
     except BotSession.DoesNotExist:
         messages.error(request, 'Session not found!')
         return redirect('dashboard:control')
-    
+
     context = {
         'session': session,
         'viewers': viewers,
     }
-    
+
     return render(request, 'dashboard/session_detail.html', context)
 
 
@@ -523,7 +550,7 @@ def api_session_data(request, session_id):
     try:
         session = BotSession.objects.get(session_id=session_id)
         viewers = Viewer.objects.filter(session=session)
-        
+
         data = {
             'status': session.status,
             'success_count': session.success_count,
@@ -545,7 +572,7 @@ def api_session_data(request, session_id):
                 for viewer in viewers
             ]
         }
-        
+
         return JsonResponse(data)
     except BotSession.DoesNotExist:
         return JsonResponse({'error': 'Session not found'}, status=404)
@@ -560,7 +587,7 @@ def api_update_viewer_stats(request):
             session_id = data.get('session_id')
             viewer_id = data.get('viewer_id')
             stats = data.get('stats', {})
-            
+
             # Update viewer stats
             try:
                 session = BotSession.objects.get(session_id=session_id)
@@ -569,43 +596,146 @@ def api_update_viewer_stats(request):
                     viewer_id=viewer_id,
                     defaults={'status': 'running'}
                 )
-                
+
                 viewer.status = stats.get('status', viewer.status)
                 viewer.comments_sent = stats.get('comments_sent', viewer.comments_sent)
                 viewer.reactions_made = stats.get('reactions_made', viewer.reactions_made)
                 viewer.save()
-                
+
                 return JsonResponse({'status': 'success'})
             except BotSession.DoesNotExist:
                 return JsonResponse({'status': 'error', 'message': 'Session not found'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)})
-    
+
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
 
 @login_required
+def api_get_logs(request):
+    """API endpoint to fetch real log entries from BotSession logs field."""
+    session_id = request.GET.get('session_id')
+    limit = int(request.GET.get('limit', 200))
+
+    log_entries = []
+
+    if session_id:
+        # Fetch logs for a specific session
+        try:
+            session = BotSession.objects.get(session_id=session_id)
+            if session.logs:
+                lines = session.logs.strip().splitlines()
+                log_entries = lines[-limit:]
+        except BotSession.DoesNotExist:
+            pass
+    else:
+        # Aggregate logs from recent sessions (latest 10)
+        recent_sessions = BotSession.objects.all().order_by('-start_time')[:10]
+        for session in recent_sessions:
+            if session.logs:
+                lines = session.logs.strip().splitlines()
+                for line in lines:
+                    log_entries.append(f'[Session {session.session_id}] {line}')
+
+    # Also try to read from the Django log file if configured
+    log_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'django.log')
+    if os.path.exists(log_file_path):
+        try:
+            with open(log_file_path, 'r', encoding='utf-8', errors='replace') as f:
+                file_lines = f.readlines()
+                # Take last N lines
+                file_lines = [l.rstrip() for l in file_lines[-limit:] if l.strip()]
+                log_entries = file_lines + log_entries
+        except Exception:
+            pass
+
+    # Compute log stats
+    error_count = sum(1 for l in log_entries if 'ERROR' in l.upper())
+    warning_count = sum(1 for l in log_entries if 'WARNING' in l.upper() or 'WARN' in l.upper())
+    info_count = sum(1 for l in log_entries if 'INFO' in l.upper())
+    total_count = len(log_entries)
+    success_count = sum(1 for l in log_entries if 'SUCCESS' in l.upper() or '✅' in l)
+
+    return JsonResponse({
+        'success': True,
+        'logs': log_entries[-limit:],
+        'stats': {
+            'total': total_count,
+            'errors': error_count,
+            'warnings': warning_count,
+            'info': info_count,
+            'success': success_count,
+        }
+    })
+
+
+@login_required
 def logs_view(request):
-    """View for displaying logs."""
-    # This would connect to actual log files or database logs
-    # For now, we'll simulate with sample data
-    sample_logs = [
-        "INFO: Starting 3 viewers for https://www.tiktok.com/@khamish92/live",
-        "INFO: Viewer 1: Starting session",
-        "INFO: Viewer 2: Starting session", 
-        "INFO: Viewer 3: Starting session",
-        "INFO: Viewer 1: Using proxy http://proxy.example.com:8080",
-        "INFO: Viewer 1: Loading page...",
-        "INFO: Viewer 1: Page loaded (status: 200)",
-        "INFO: Viewer 1: ✅ WATCHING",
-        "WARNING: Viewer 2: Timeout loading page",
-        "INFO: Viewer 2: Retrying...",
-        "INFO: Viewer 2: Page loaded (status: 200)",
-        "INFO: Viewer 2: ✅ WATCHING",
-    ]
-    
+    """View for displaying real logs from sessions and log files."""
+    # Aggregate logs from recent sessions
+    recent_sessions = BotSession.objects.all().order_by('-start_time')[:10]
+    log_entries = []
+
+    for session in recent_sessions:
+        if session.logs:
+            lines = session.logs.strip().splitlines()
+            for line in lines:
+                log_entries.append({
+                    'session_id': session.session_id,
+                    'text': line,
+                    'level': _classify_log_level(line),
+                })
+
+    # Also try to read from the Django log file
+    log_file_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'django.log')
+    if os.path.exists(log_file_path):
+        try:
+            with open(log_file_path, 'r', encoding='utf-8', errors='replace') as f:
+                file_lines = f.readlines()
+                for line in file_lines[-200:]:
+                    line = line.rstrip()
+                    if line:
+                        log_entries.append({
+                            'session_id': 'system',
+                            'text': line,
+                            'level': _classify_log_level(line),
+                        })
+        except Exception:
+            pass
+
+    # Compute real stats
+    error_count = sum(1 for l in log_entries if l['level'] == 'error')
+    warning_count = sum(1 for l in log_entries if l['level'] == 'warning')
+    info_count = sum(1 for l in log_entries if l['level'] == 'info')
+    success_count = sum(1 for l in log_entries if l['level'] == 'success')
+    total_count = len(log_entries)
+
+    # Success rate based on log entries
+    non_error = total_count - error_count
+    log_success_rate = round((non_error / total_count * 100), 1) if total_count > 0 else 100
+
     context = {
-        'logs': sample_logs,
+        'log_entries': log_entries[-200:],  # Show last 200 entries
+        'error_count': error_count,
+        'warning_count': warning_count,
+        'info_count': info_count,
+        'success_count': success_count,
+        'total_count': total_count,
+        'log_success_rate': log_success_rate,
+        'has_logs': total_count > 0,
     }
-    
+
     return render(request, 'dashboard/logs.html', context)
+
+
+def _classify_log_level(line):
+    """Classify a log line into a level string."""
+    upper = line.upper()
+    if 'ERROR' in upper or 'FAILED' in upper or 'EXCEPTION' in upper or 'TRACEBACK' in upper:
+        return 'error'
+    elif 'WARNING' in upper or 'WARN' in upper:
+        return 'warning'
+    elif 'SUCCESS' in upper or '✅' in line or 'WATCHING' in upper:
+        return 'success'
+    else:
+        return 'info'

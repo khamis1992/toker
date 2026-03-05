@@ -37,11 +37,6 @@ setInterval(function() {
                             <td>${viewer.comments_sent}</td>
                             <td>${viewer.reactions_made}</td>
                             <td>${new Date(viewer.start_time).toLocaleTimeString()}</td>
-                            <td>
-                                <button class="btn btn-sm btn-outline-primary" title="View Details">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                            </td>
                         </tr>
                     `;
                     tbody.innerHTML += row;
@@ -146,7 +141,7 @@ setInterval(function() {
                                 <h6 class="card-title">Performance Metrics</h6>
                                 <div class="row text-center">
                                     <div class="col-4">
-                                        <div class="display-6 text-primary">{{ session.success_count|divide:session.viewers_count|multiply:100|floatformat:0 }}%</div>
+                                        <div class="display-6 text-primary">{% if session.viewers_count > 0 %}{% widthratio session.success_count session.viewers_count 100 %}{% else %}0{% endif %}%</div>
                                         <div class="text-muted small">Success Rate</div>
                                     </div>
                                     <div class="col-4">
@@ -161,10 +156,10 @@ setInterval(function() {
                                 <div class="mt-3">
                                     <div class="d-flex justify-content-between mb-1">
                                         <span>Success Rate</span>
-                                        <span>{{ session.success_count|divide:session.viewers_count|multiply:100|floatformat:0 }}%</span>
+                                        <span>{% if session.viewers_count > 0 %}{% widthratio session.success_count session.viewers_count 100 %}{% else %}0{% endif %}%</span>
                                     </div>
                                     <div class="progress">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio session.success_count session.viewers_count 100 %}%"></div>
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {% if session.viewers_count > 0 %}{% widthratio session.success_count session.viewers_count 100 %}{% else %}0{% endif %}%"></div>
                                     </div>
                                 </div>
                             </div>
@@ -185,7 +180,6 @@ setInterval(function() {
                                         <th>Comments</th>
                                         <th>Reactions</th>
                                         <th>Started</th>
-                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -211,11 +205,6 @@ setInterval(function() {
                                         <td>{{ viewer.comments_sent }}</td>
                                         <td>{{ viewer.reactions_made }}</td>
                                         <td>{{ viewer.start_time|date:"H:i:s" }}</td>
-                                        <td>
-                                            <button class="btn btn-sm btn-outline-primary" title="View Details">
-                                                <i class="bi bi-eye"></i>
-                                            </button>
-                                        </td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>

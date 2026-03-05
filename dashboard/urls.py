@@ -16,4 +16,5 @@ urlpatterns = [
     path('api/load-free-proxies/', views.api_load_free_proxies, name='api_load_free_proxies'),
     path('api/autofetch-settings/', views.api_get_autofetch_settings, name='api_get_autofetch_settings'),
     path('api/autofetch-settings/save/', views.api_save_autofetch_settings, name='api_save_autofetch_settings'),
+    path('api/logs/', views.api_get_logs, name='api_get_logs'),
 ]

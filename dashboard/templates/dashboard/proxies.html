@@ -50,8 +50,8 @@
                     <div class="col-md-3 mb-3">
                         <div class="card bg-info text-white h-100">
                             <div class="card-body text-center">
-                                <div class="fs-1">98%</div>
-                                <div>Uptime</div>
+                                <div class="fs-1">{% if total_proxies > 0 %}{{ active_proxies }}{% else %}0{% endif %}</div>
+                                <div>Ready to Use</div>
                             </div>
                         </div>
                     </div>
@@ -144,10 +144,17 @@
                                         </td>
                                         <td>{{ proxy.created_at|date:"M d, Y" }}</td>
                                         <td>
+                                            {% if proxy.last_used %}
                                             <div class="progress" style="height: 8px;">
-                                                <div class="progress-bar bg-success" role="progressbar" style="width: 95%"></div>
+                                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%"></div>
                                             </div>
-                                            <small class="text-muted">95% success</small>
+                                            <small class="text-muted">Used recently</small>
+                                            {% else %}
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar bg-secondary" role="progressbar" style="width: 0%"></div>
+                                            </div>
+                                            <small class="text-muted">Not yet used</small>
+                                            {% endif %}
                                         </td>
                                         <td>
                                         <div class="btn-group btn-group-sm">

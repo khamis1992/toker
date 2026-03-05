@@ -247,7 +247,63 @@ function loadDefaults() {
 }
 
 function previewSettings() {
-    alert('Settings preview would show a simulation of how these settings would affect your bot performance.');
+    // Build a real summary of the current form values
+    const url     = document.getElementById('live_url').value || '(not set)';
+    const viewers = document.getElementById('num_viewers').value || '?';
+    const headless = document.getElementById('headless').checked ? 'Yes (no browser window)' : 'No (visible browser)';
+    const duration = document.getElementById('session_max_duration').value || '?';
+    const retries  = document.getElementById('max_retry_attempts').value || '?';
+    const logLvl   = document.getElementById('log_level').value || 'INFO';
+    const screenshots = document.getElementById('debug_screenshots').checked ? 'Enabled' : 'Disabled';
+
+    const summary = [
+        '=== Current Settings Preview ===',
+        '',
+        `Live URL      : ${url}`,
+        `Viewers       : ${viewers}`,
+        `Headless Mode : ${headless}`,
+        `Max Duration  : ${duration}s`,
+        `Max Retries   : ${retries}`,
+        `Log Level     : ${logLvl}`,
+        `Screenshots   : ${screenshots}`,
+        '',
+        'Click "Save Settings" to apply these values.',
+    ].join('\n');
+
+    // Show in a Bootstrap modal if available, otherwise use a simple alert
+    if (typeof bootstrap !== 'undefined') {
+        let modal = document.getElementById('previewModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'previewModal';
+            modal.className = 'modal fade';
+            modal.tabIndex = -1;
+            modal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-eye me-2"></i>Settings Preview</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <pre id="previewContent" class="bg-light p-3 rounded" style="font-size:0.85rem;"></pre>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            <button type="button" class="btn btn-primary" data-bs-dismiss="modal"
+                                onclick="document.getElementById('settingsForm').submit()">
+                                <i class="bi bi-save me-1"></i>Save Now
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+        }
+        document.getElementById('previewContent').textContent = summary;
+        new bootstrap.Modal(modal).show();
+    } else {
+        alert(summary);
+    }
 }
 </script>
 {% endblock %}

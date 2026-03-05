@@ -15,11 +15,12 @@
                         <option value="error">Errors Only</option>
                         <option value="warning">Warnings Only</option>
                         <option value="info">Info Only</option>
+                        <option value="success">Success Only</option>
                     </select>
-                    <button class="btn btn-sm btn-outline-primary me-2" id="refresh-logs">
+                    <button class="btn btn-sm btn-outline-primary me-2" id="refresh-logs" title="Refresh logs from server">
                         <i class="bi bi-arrow-repeat"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-danger" id="clear-logs">
+                    <button class="btn btn-sm btn-outline-danger" id="clear-logs" title="Clear log display">
                         <i class="bi bi-trash"></i> Clear
                     </button>
                 </div>
@@ -31,29 +32,35 @@
                             <span class="badge bg-primary">INFO</span>
                             <span class="badge bg-warning">WARNING</span>
                             <span class="badge bg-danger">ERROR</span>
+                            <span class="badge bg-success">SUCCESS</span>
                         </div>
                         <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
-                            <label class="form-check-label" for="auto-refresh">Auto-refresh</label>
+                            <input class="form-check-input" type="checkbox" id="auto-refresh">
+                            <label class="form-check-label" for="auto-refresh">Auto-refresh (30s)</label>
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="bg-dark text-light p-4" style="height: 500px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.875rem;" id="log-container">
-                    <div class="text-muted mb-2">$ TikTok Bot Dashboard v1.0</div>
-                    <div class="text-muted mb-2">$ System initialized successfully</div>
-                    <div class="text-info mb-2">[INFO] 2024-03-05 14:30:15 - Starting Django development server...</div>
-                    <div class="text-success mb-2">[SUCCESS] 2024-03-05 14:30:18 - Server started successfully on port 8000</div>
-                    <div class="text-info mb-2">[INFO] 2024-03-05 14:30:22 - User 'admin' logged in from 127.0.0.1</div>
-                    <div class="text-warning mb-2">[WARNING] 2024-03-05 14:32:45 - High memory usage detected (85%)</div>
-                    <div class="text-info mb-2">[INFO] 2024-03-05 14:35:10 - Proxy health check initiated</div>
-                    <div class="text-success mb-2">[SUCCESS] 2024-03-05 14:35:15 - 8/10 proxies are operational</div>
-                    <div class="text-error mb-2">[ERROR] 2024-03-05 14:37:22 - Failed to connect to proxy: Connection timed out</div>
-                    <div class="text-info mb-2">[INFO] 2024-03-05 14:37:25 - Retrying with alternative proxy...</div>
-                    <div class="text-success mb-2">[SUCCESS] 2024-03-05 14:37:30 - Successfully connected with backup proxy</div>
-                    <div id="live-log-indicator" class="text-muted">
-                        <div class="spinner-grow spinner-grow-sm text-primary me-2" role="status"></div>
-                        Listening for new logs...
+                    {% if has_logs %}
+                        {% for entry in log_entries %}
+                        <div class="log-line mb-1
+                            {% if entry.level == 'error' %}text-danger
+                            {% elif entry.level == 'warning' %}text-warning
+                            {% elif entry.level == 'success' %}text-success
+                            {% else %}text-info{% endif %}"
+                            data-level="{{ entry.level }}">
+                            {% if entry.session_id != 'system' %}<span class="text-muted">[{{ entry.session_id }}]</span> {% endif %}{{ entry.text }}
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-muted mb-2">$ TikTok Bot Dashboard v1.0</div>
+                        <div class="text-muted mb-2">$ No log entries found yet.</div>
+                        <div class="text-muted mb-2">$ Start a bot session to generate logs.</div>
+                    {% endif %}
+                    <div id="live-log-indicator" class="text-muted mt-2">
+                        <div class="spinner-grow spinner-grow-sm text-primary me-2" role="status" style="display:none;"></div>
+                        <span id="log-status-text">Showing stored logs — enable auto-refresh for live updates.</span>
                     </div>
                 </div>
             </div>
@@ -61,6 +68,7 @@
     </div>
 </div>
 
+<!-- Log Statistics — real data from DB/log files -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card dashboard-card">
@@ -70,148 +78,207 @@
             <div class="card-body">
                 <div class="row text-center">
                     <div class="col-md-3 mb-4 mb-md-0">
-                        <div class="display-4 text-danger">1</div>
+                        <div class="display-4 text-danger" id="stat-errors">{{ error_count }}</div>
                         <div class="fw-medium">Errors</div>
-                        <div class="text-muted small">In last hour</div>
+                        <div class="text-muted small">Total in logs</div>
                     </div>
                     <div class="col-md-3 mb-4 mb-md-0">
-                        <div class="display-4 text-warning">2</div>
+                        <div class="display-4 text-warning" id="stat-warnings">{{ warning_count }}</div>
                         <div class="fw-medium">Warnings</div>
-                        <div class="text-muted small">In last hour</div>
+                        <div class="text-muted small">Total in logs</div>
                     </div>
                     <div class="col-md-3 mb-4 mb-md-0">
-                        <div class="display-4 text-primary">24</div>
+                        <div class="display-4 text-primary" id="stat-info">{{ info_count }}</div>
                         <div class="fw-medium">Info Messages</div>
-                        <div class="text-muted small">In last hour</div>
+                        <div class="text-muted small">Total in logs</div>
                     </div>
                     <div class="col-md-3">
-                        <div class="display-4 text-success">96%</div>
+                        <div class="display-4 text-success" id="stat-rate">{{ log_success_rate }}%</div>
                         <div class="fw-medium">Success Rate</div>
-                        <div class="text-muted small">Log processing</div>
+                        <div class="text-muted small">Non-error entries</div>
                     </div>
                 </div>
-                
+
+                {% if total_count > 0 %}
                 <div class="mt-4">
-                    <h6>Recent Activity</h6>
-                    <div class="progress-stacked">
-                        <div class="progress" role="progressbar" style="width: 70%">
-                            <div class="progress-bar bg-success"></div>
+                    <h6>Log Level Distribution</h6>
+                    <div class="progress" style="height: 20px;">
+                        {% if total_count > 0 %}
+                        <div class="progress-bar bg-success" role="progressbar"
+                             style="width: {% widthratio success_count total_count 100 %}%"
+                             title="Success: {{ success_count }}">
+                            {% if success_count > 0 %}S{% endif %}
                         </div>
-                        <div class="progress" role="progressbar" style="width: 20%">
-                            <div class="progress-bar bg-warning"></div>
+                        <div class="progress-bar bg-primary" role="progressbar"
+                             style="width: {% widthratio info_count total_count 100 %}%"
+                             title="Info: {{ info_count }}">
+                            {% if info_count > 0 %}I{% endif %}
                         </div>
-                        <div class="progress" role="progressbar" style="width: 10%">
-                            <div class="progress-bar bg-danger"></div>
+                        <div class="progress-bar bg-warning" role="progressbar"
+                             style="width: {% widthratio warning_count total_count 100 %}%"
+                             title="Warning: {{ warning_count }}">
+                            {% if warning_count > 0 %}W{% endif %}
                         </div>
+                        <div class="progress-bar bg-danger" role="progressbar"
+                             style="width: {% widthratio error_count total_count 100 %}%"
+                             title="Error: {{ error_count }}">
+                            {% if error_count > 0 %}E{% endif %}
+                        </div>
+                        {% endif %}
                     </div>
                     <div class="d-flex justify-content-between small text-muted mt-2">
-                        <span>Success (70%)</span>
-                        <span>Warnings (20%)</span>
-                        <span>Errors (10%)</span>
+                        <span class="text-success">Success ({{ success_count }})</span>
+                        <span class="text-primary">Info ({{ info_count }})</span>
+                        <span class="text-warning">Warnings ({{ warning_count }})</span>
+                        <span class="text-danger">Errors ({{ error_count }})</span>
                     </div>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const logContainer = document.getElementById('log-container');
-    const refreshBtn = document.getElementById('refresh-logs');
-    const clearBtn = document.getElementById('clear-logs');
-    const autoRefresh = document.getElementById('auto-refresh');
-    const logLevelFilter = document.getElementById('log-level-filter');
-    
-    // Auto-scroll to bottom
+    const refreshBtn   = document.getElementById('refresh-logs');
+    const clearBtn     = document.getElementById('clear-logs');
+    const autoRefresh  = document.getElementById('auto-refresh');
+    const levelFilter  = document.getElementById('log-level-filter');
+    const logStatus    = document.getElementById('log-status-text');
+    const spinner      = document.querySelector('#live-log-indicator .spinner-grow');
+
+    // Auto-scroll to bottom on load
     logContainer.scrollTop = logContainer.scrollHeight;
-    
-    // Refresh button
-    refreshBtn.addEventListener('click', function() {
-        this.classList.add('fa-spin');
-        setTimeout(() => {
-            this.classList.remove('fa-spin');
-            // Add a new log entry for demo
-            const now = new Date();
-            const timeString = now.toISOString().replace('T', ' ').substring(0, 19);
-            const logEntry = document.createElement('div');
-            logEntry.className = 'text-info mb-2';
-            logEntry.textContent = `[INFO] ${timeString} - Log refresh completed`;
-            document.getElementById('live-log-indicator').before(logEntry);
+
+    // ----------------------------------------------------------------
+    // Fetch real logs from the server API
+    // ----------------------------------------------------------------
+    function fetchLogs() {
+        spinner.style.display = 'inline-block';
+        logStatus.textContent = 'Fetching logs...';
+
+        fetch('/api/logs/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+            spinner.style.display = 'none';
+            if (!data.success) {
+                logStatus.textContent = 'Failed to fetch logs.';
+                return;
+            }
+
+            // Clear existing log lines (keep the indicator)
+            document.querySelectorAll('#log-container .log-line').forEach(el => el.remove());
+
+            const indicator = document.getElementById('live-log-indicator');
+
+            if (data.logs.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'log-line text-muted mb-1';
+                empty.setAttribute('data-level', 'info');
+                empty.textContent = 'No log entries found. Start a bot session to generate logs.';
+                logContainer.insertBefore(empty, indicator);
+            } else {
+                data.logs.forEach(line => {
+                    const div = document.createElement('div');
+                    const upper = line.toUpperCase();
+                    let level = 'info';
+                    let cls   = 'text-info';
+                    if (upper.includes('ERROR') || upper.includes('FAILED') || upper.includes('EXCEPTION')) {
+                        level = 'error'; cls = 'text-danger';
+                    } else if (upper.includes('WARNING') || upper.includes('WARN')) {
+                        level = 'warning'; cls = 'text-warning';
+                    } else if (upper.includes('SUCCESS') || line.includes('✅') || upper.includes('WATCHING')) {
+                        level = 'success'; cls = 'text-success';
+                    }
+                    div.className = `log-line ${cls} mb-1`;
+                    div.setAttribute('data-level', level);
+                    div.textContent = line;
+                    logContainer.insertBefore(div, indicator);
+                });
+            }
+
+            // Update stats
+            if (data.stats) {
+                const s = data.stats;
+                const errEl  = document.getElementById('stat-errors');
+                const wrnEl  = document.getElementById('stat-warnings');
+                const infEl  = document.getElementById('stat-info');
+                const rteEl  = document.getElementById('stat-rate');
+                if (errEl) errEl.textContent = s.errors;
+                if (wrnEl) wrnEl.textContent = s.warnings;
+                if (infEl) infEl.textContent = s.info;
+                if (rteEl) {
+                    const rate = s.total > 0 ? Math.round(((s.total - s.errors) / s.total) * 100) : 100;
+                    rteEl.textContent = rate + '%';
+                }
+            }
+
+            logStatus.textContent = `Last refreshed: ${new Date().toLocaleTimeString()}`;
+            applyFilter(levelFilter.value);
             logContainer.scrollTop = logContainer.scrollHeight;
-        }, 500);
+        })
+        .catch(err => {
+            spinner.style.display = 'none';
+            logStatus.textContent = `Error fetching logs: ${err.message}`;
+        });
+    }
+
+    // ----------------------------------------------------------------
+    // Filter log lines by level
+    // ----------------------------------------------------------------
+    function applyFilter(level) {
+        document.querySelectorAll('#log-container .log-line').forEach(el => {
+            if (level === 'all' || el.getAttribute('data-level') === level) {
+                el.style.display = '';
+            } else {
+                el.style.display = 'none';
+            }
+        });
+    }
+
+    // ----------------------------------------------------------------
+    // Button handlers
+    // ----------------------------------------------------------------
+    refreshBtn.addEventListener('click', function() {
+        const icon = this.querySelector('i');
+        icon.classList.add('spin-icon');
+        fetchLogs();
+        setTimeout(() => icon.classList.remove('spin-icon'), 800);
     });
-    
-    // Clear logs
+
     clearBtn.addEventListener('click', function() {
-        if (confirm('Are you sure you want to clear all logs?')) {
-            logContainer.innerHTML = '<div class="text-muted">Logs cleared at ' + new Date().toISOString().substring(0, 19).replace('T', ' ') + '</div><div id="live-log-indicator" class="text-muted"><div class="spinner-grow spinner-grow-sm text-primary me-2" role="status"></div>Listening for new logs...</div>';
+        if (confirm('Clear the log display? (This does not delete log files.)')) {
+            document.querySelectorAll('#log-container .log-line').forEach(el => el.remove());
+            logStatus.textContent = `Display cleared at ${new Date().toLocaleTimeString()}`;
         }
     });
-    
+
+    levelFilter.addEventListener('change', function() {
+        applyFilter(this.value);
+    });
+
+    // ----------------------------------------------------------------
     // Auto-refresh toggle
-    let refreshInterval;
+    // ----------------------------------------------------------------
+    let refreshInterval = null;
     autoRefresh.addEventListener('change', function() {
         if (this.checked) {
-            refreshInterval = setInterval(function() {
-                // Simulate new log entry
-                const logLevels = ['text-info', 'text-success', 'text-warning'];
-                const messages = [
-                    'Periodic status check passed',
-                    'Proxy connection stable',
-                    'Memory usage at 45%',
-                    'Session viewer-3 active',
-                    'Comment engine running'
-                ];
-                
-                if (Math.random() > 0.7) { // 30% chance to add log
-                    const now = new Date();
-                    const timeString = now.toISOString().replace('T', ' ').substring(0, 19);
-                    const logLevel = logLevels[Math.floor(Math.random() * logLevels.length)];
-                    const message = messages[Math.floor(Math.random() * messages.length)];
-                    
-                    const logEntry = document.createElement('div');
-                    logEntry.className = logLevel + ' mb-2';
-                    logEntry.textContent = `[${logLevel.includes('info') ? 'INFO' : logLevel.includes('success') ? 'SUCCESS' : 'WARNING'}] ${timeString} - ${message}`;
-                    
-                    document.getElementById('live-log-indicator').before(logEntry);
-                    logContainer.scrollTop = logContainer.scrollHeight;
-                }
-            }, 3000);
+            logStatus.textContent = 'Auto-refresh enabled (every 30s)';
+            refreshInterval = setInterval(fetchLogs, 30000);
         } else {
             clearInterval(refreshInterval);
+            refreshInterval = null;
+            logStatus.textContent = 'Auto-refresh disabled.';
         }
     });
-    
-    // Trigger initial auto-refresh if enabled
-    if (autoRefresh.checked) {
-        refreshInterval = setInterval(function() {
-            // Simulate new log entry
-            if (Math.random() > 0.7) {
-                const logLevels = ['text-info', 'text-success', 'text-warning'];
-                const messages = [
-                    'Periodic status check passed',
-                    'Proxy connection stable',
-                    'Memory usage at 45%'
-                ];
-                
-                const now = new Date();
-                const timeString = now.toISOString().replace('T', ' ').substring(0, 19);
-                const logLevel = logLevels[Math.floor(Math.random() * logLevels.length)];
-                const message = messages[Math.floor(Math.random() * messages.length)];
-                
-                const logEntry = document.createElement('div');
-                logEntry.className = logLevel + ' mb-2';
-                logEntry.textContent = `[INFO] ${timeString} - ${message}`;
-                
-                document.getElementById('live-log-indicator').before(logEntry);
-                logContainer.scrollTop = logContainer.scrollHeight;
-            }
-        }, 3000);
-    }
 });
 </script>
+<style>
+@keyframes spin { to { transform: rotate(360deg); } }
+.spin-icon { animation: spin 0.8s linear; }
+</style>
 {% endblock %}
