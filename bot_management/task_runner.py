@@ -12,28 +12,30 @@ from django.conf import settings
 running_processes = {}
 
 
-def start_bot_session(session_id: str, config_id: int = None):
+def start_bot_session(session_id: str, config_id: int = None, proxy_source: str = 'free'):
     """
     Start a bot session as a background process.
-    
+
     Args:
         session_id: The session ID to use
         config_id: Optional configuration ID
-    
+        proxy_source: Which proxy pool to use -- 'free', 'packetstream', or 'none'
+
     Returns:
         bool: True if process started successfully, False otherwise
     """
     # Get the project root directory
     project_root = Path(settings.BASE_DIR)
-    
+
     # Build the command to run the bot
     cmd = [
         sys.executable,  # Python executable
         str(project_root / 'manage.py'),
         'run_tiktok_bot',
         '--session-id', session_id,
+        '--proxy-source', proxy_source,
     ]
-    
+
     if config_id:
         cmd.extend(['--config-id', str(config_id)])
     

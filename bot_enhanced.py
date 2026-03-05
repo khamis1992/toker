@@ -112,20 +112,36 @@ class TikTokViewer:
                 logger.info(f"Viewer {self.viewer_id}: Loading page...")
                 
                 # Go to page with better error handling
+                # Use 'domcontentloaded' instead of 'load' — TikTok live pages never
+                # fully fire the 'load' event due to continuous streaming resources.
                 try:
-                    response = await page.goto(live_url, wait_until='load', timeout=config.page_load_timeout)
-                    logger.info(f"Viewer {self.viewer_id}: Page loaded (status: {response.status})")
+                    response = await page.goto(
+                        live_url,
+                        wait_until='domcontentloaded',
+                        timeout=config.page_load_timeout
+                    )
+                    logger.info(f"Viewer {self.viewer_id}: Page loaded (status: {response.status if response else 'unknown'})")
                 except PlaywrightTimeout as e:
                     raise TikTokNetworkError(self.viewer_id, f"Timeout loading page: {e}")
                 except Exception as e:
                     raise TikTokNetworkError(self.viewer_id, f"Failed to load page: {e}")
-                
-                # Wait for TikTok to render with progressive timeout
-                await asyncio.sleep(5)
-                
+
+                # Wait for TikTok React app to render the live player
+                await asyncio.sleep(8)
+
+                # Check page content for common failure conditions before looking for video
+                html = await page.content()
+                html_lower = html.lower()
+                if 'this account is private' in html_lower:
+                    raise TikTokViewerError(self.viewer_id, "Account is private")
+                if 'live has ended' in html_lower or 'this live has ended' in html_lower:
+                    raise TikTokViewerError(self.viewer_id, "Live stream has ended")
+                if 'isn\'t live' in html_lower or 'not live' in html_lower:
+                    raise TikTokViewerError(self.viewer_id, "Stream is not currently live")
+
                 # Try to find video with enhanced selectors and error handling
                 video_found = await self._find_video_element(page)
-                
+
                 if not video_found:
                     # Take screenshot to see what's there
                     if config.debug_screenshots:
@@ -134,17 +150,18 @@ class TikTokViewer:
                         logger.warning(f"Viewer {self.viewer_id}: No video found. Screenshot saved: {screenshot_path}")
                     else:
                         logger.warning(f"Viewer {self.viewer_id}: No video found. Debug screenshots disabled.")
-                    
-                    # Check if there's a login button or age restriction
-                    html = await page.content()
-                    if "login" in html.lower():
-                        raise TikTokViewerError(self.viewer_id, "TikTok requires login")
-                    elif "age" in html.lower():
+
+                    # Analyse page content for a more specific error message
+                    if 'login' in html_lower or 'sign in' in html_lower:
+                        raise TikTokViewerError(self.viewer_id, "TikTok requires login to view this stream")
+                    elif 'age' in html_lower and 'restriction' in html_lower:
                         raise TikTokViewerError(self.viewer_id, "Age restriction detected")
-                    elif "not available" in html.lower():
-                        raise TikTokViewerError(self.viewer_id, "Stream not available")
+                    elif 'not available' in html_lower or 'unavailable' in html_lower:
+                        raise TikTokViewerError(self.viewer_id, "Stream not available in this region")
+                    elif len(html) < 5000:
+                        raise TikTokViewerError(self.viewer_id, "Page did not render properly (proxy may be blocking TikTok)")
                     else:
-                        raise TikTokContentNotFoundError(self.viewer_id, "Unknown content issue (check screenshot)")
+                        raise TikTokContentNotFoundError(self.viewer_id, "Live player not found — stream may be offline")
                 
                 logger.info(f"Viewer {self.viewer_id}: ✅ WATCHING")
                 
@@ -170,19 +187,33 @@ class TikTokViewer:
     async def _should_load_resource(self, route):
         """Decide whether to load a resource."""
         url = route.request.url.lower()
-        
-        # Allow essential resources
-        if any(allowed in url for allowed in ['video', 'tiktok', 'ttlive']):
-            await route.continue_()
+        resource_type = route.request.resource_type
+
+        # Block only heavy non-essential media (ads, tracking pixels, analytics)
+        BLOCKED_DOMAINS = [
+            'doubleclick.net', 'googlesyndication.com', 'google-analytics.com',
+            'googletagmanager.com', 'facebook.com/tr', 'amplitude.com',
+            'mixpanel.com', 'hotjar.com', 'clarity.ms',
+        ]
+        if any(domain in url for domain in BLOCKED_DOMAINS):
+            await route.abort()
             return
-        
-        # Allow CSS and JS for proper page rendering
-        if route.request.resource_type in ['stylesheet', 'script']:
-            await route.continue_()
+
+        # Block only image/font resources from non-TikTok domains to save bandwidth
+        TIKTOK_DOMAINS = [
+            'tiktok.com', 'tiktokcdn.com', 'tiktokv.com', 'ttlive.com',
+            'muscdn.com', 'bytedance.com', 'byteimg.com', 'sgsnssdk.com',
+            'ibytedtos.com', 'ibyteimg.com', 'pstatp.com', 'snssdk.com',
+            'bdstatic.com', 'byteoversea.com', 'packetstream.io',
+        ]
+        is_tiktok = any(domain in url for domain in TIKTOK_DOMAINS)
+
+        if not is_tiktok and resource_type in ['image', 'font', 'media']:
+            await route.abort()
             return
-            
-        # Block everything else to save bandwidth
-        await route.abort()
+
+        # Allow everything else (scripts, stylesheets, XHR, fetch, websocket, etc.)
+        await route.continue_()
     
     async def _find_video_element(self, page):
         """Try to find video element with enhanced detection."""

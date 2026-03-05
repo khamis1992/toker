@@ -387,6 +387,87 @@
         </div>
     </div>
 </div>
+<!-- PacketStream Paid Proxy Panel -->
+<div class="row mt-4" id="packetstream">
+    <div class="col-12">
+        <div class="card dashboard-card border-{% if ps_settings.is_enabled %}success{% else %}secondary{% endif %}">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-shield-check me-2 text-success"></i>PacketStream Paid Proxy
+                    {% if ps_settings.is_enabled %}
+                        <span class="badge bg-success ms-2">Enabled</span>
+                    {% else %}
+                        <span class="badge bg-secondary ms-2">Disabled</span>
+                    {% endif %}
+                </h5>
+                <a href="https://packetstream.io" target="_blank" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>PacketStream Dashboard
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info border-0 mb-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>PacketStream</strong> provides residential rotating proxies. Each viewer uses the same endpoint but gets a different residential IP automatically.
+                    Enter your credentials from your <a href="https://packetstream.io/dashboard" target="_blank">PacketStream dashboard</a>.
+                </div>
+                <form method="post" id="packetstreamForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="save_packetstream">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Username</label>
+                            <input type="text" class="form-control" name="ps_username"
+                                   value="{{ ps_settings.username }}" placeholder="your_username">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">CIK / Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" name="ps_cik" id="psCikInput"
+                                       value="{{ ps_settings.cik }}" placeholder="Your CIK key">
+                                <button class="btn btn-outline-secondary" type="button"
+                                        onclick="var i=document.getElementById('psCikInput'); i.type=i.type==='password'?'text':'password';">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                            </div>
+                            <small class="text-muted">Found in your PacketStream dashboard under &ldquo;Proxy Settings&rdquo;</small>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Host</label>
+                            <input type="text" class="form-control" name="ps_host"
+                                   value="{{ ps_settings.host }}" placeholder="proxy.packetstream.io">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-semibold">Port</label>
+                            <input type="number" class="form-control" name="ps_port"
+                                   value="{{ ps_settings.port }}" placeholder="31112">
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       name="ps_enabled" id="psEnabledToggle"
+                                       {% if ps_settings.is_enabled %}checked{% endif %}>
+                                <label class="form-check-label fw-semibold" for="psEnabledToggle">
+                                    Enable PacketStream as a proxy option when starting sessions
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-12 d-flex gap-2">
+                            <button type="submit" class="btn btn-success">
+                                <i class="bi bi-save me-1"></i>Save Settings
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="testPsBtn"
+                                    onclick="testPacketStreamConnection()">
+                                <i class="bi bi-wifi me-1"></i>Test Connection
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <div id="psTestResult" class="mt-3" style="display:none;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Auto-Fetch Settings Panel -->
 <div class="row mt-4">
     <div class="col-12">
@@ -1193,5 +1274,59 @@ function showProxyFormatHelp(sourceName) {
     loadSettings();
 })();
 // ============================================================
+
+// ============================================================
+// PacketStream Connection Test
+// ============================================================
+function testPacketStreamConnection() {
+    const btn = document.getElementById('testPsBtn');
+    const result = document.getElementById('psTestResult');
+    const username = document.querySelector('[name="ps_username"]').value.trim();
+    const cik = document.getElementById('psCikInput').value.trim();
+    const host = document.querySelector('[name="ps_host"]').value.trim();
+    const port = document.querySelector('[name="ps_port"]').value.trim();
+
+    if (!username || !cik) {
+        result.style.display = 'block';
+        result.innerHTML = '<div class="alert alert-warning"><i class="bi bi-exclamation-triangle me-2"></i>Please enter your username and CIK before testing.</div>';
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Testing...';
+    result.style.display = 'none';
+
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const formData = new FormData();
+    formData.append('action', 'test_packetstream_ajax');
+    formData.append('ps_username', username);
+    formData.append('ps_cik', cik);
+    formData.append('ps_host', host || 'proxy.packetstream.io');
+    formData.append('ps_port', port || '31112');
+    formData.append('csrfmiddlewaretoken', csrfToken);
+
+    fetch(window.location.pathname, {
+        method: 'POST',
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        body: formData
+    })
+    .then(r => r.json())
+    .then(data => {
+        result.style.display = 'block';
+        if (data.success) {
+            result.innerHTML = '<div class="alert alert-success"><i class="bi bi-check-circle me-2"></i>' + data.message + '</div>';
+        } else {
+            result.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle me-2"></i>' + data.message + '</div>';
+        }
+    })
+    .catch(err => {
+        result.style.display = 'block';
+        result.innerHTML = '<div class="alert alert-danger"><i class="bi bi-x-circle me-2"></i>Request failed: ' + err + '</div>';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-wifi me-1"></i>Test Connection';
+    });
+}
 </script>
 {% endblock %}

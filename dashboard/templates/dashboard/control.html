@@ -31,7 +31,7 @@
                                             {{ session.status|title }}
                                         </span>
                                     </div>
-                                    <div class="row mb-3">
+                                    <div class="row mb-2">
                                         <div class="col-6">
                                             <small class="text-muted">Viewers</small>
                                             <div class="fw-medium">{{ session.viewers_count }}</div>
@@ -40,6 +40,12 @@
                                             <small class="text-muted">Success</small>
                                             <div class="fw-medium">{{ session.success_count }}</div>
                                         </div>
+                                    </div>
+                                    <div class="mb-2">
+                                        <small class="text-muted">
+                                            <i class="bi bi-{% if session.proxy_source == 'packetstream' %}shield-check text-success{% elif session.proxy_source == 'free' %}globe text-info{% else %}slash-circle text-secondary{% endif %} me-1"></i>
+                                            {% if session.proxy_source == 'packetstream' %}PacketStream Proxy{% elif session.proxy_source == 'free' %}Free Proxies{% else %}No Proxy{% endif %}
+                                        </small>
                                     </div>
                                     <div class="progress mb-3" style="height: 8px;">
                                         <div class="progress-bar bg-success" role="progressbar"
@@ -92,6 +98,7 @@
                                 <tr>
                                     <th>Session ID</th>
                                     <th>Status</th>
+                                    <th>Proxy Source</th>
                                     <th>Viewers</th>
                                     <th>Success</th>
                                     <th>Duration</th>
@@ -110,6 +117,15 @@
                                         <span class="badge badge-dashboard bg-{% if session.status == 'completed' %}success{% elif session.status == 'failed' %}danger{% elif session.status == 'running' %}primary{% else %}secondary{% endif %}">
                                             {{ session.status|title }}
                                         </span>
+                                    </td>
+                                    <td>
+                                        {% if session.proxy_source == 'packetstream' %}
+                                            <span class="badge bg-success"><i class="bi bi-shield-check me-1"></i>PacketStream</span>
+                                        {% elif session.proxy_source == 'free' %}
+                                            <span class="badge bg-info"><i class="bi bi-globe me-1"></i>Free</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary"><i class="bi bi-slash-circle me-1"></i>Direct</span>
+                                        {% endif %}
                                     </td>
                                     <td>{{ session.viewers_count }}</td>
                                     <td>{{ session.success_count }}</td>
@@ -142,7 +158,7 @@
     </div>
 </div>
 
-<!-- Quick Statistics — real data from DB and psutil -->
+<!-- Quick Statistics -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card dashboard-card">
@@ -179,52 +195,119 @@
 
 <!-- Start Session Modal -->
 <div class="modal fade" id="startSessionModal" tabindex="-1" aria-labelledby="startSessionModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="startSessionModalLabel">Start New Bot Session</h5>
+                <h5 class="modal-title" id="startSessionModalLabel">
+                    <i class="bi bi-play-circle me-2 text-success"></i>Start New Bot Session
+                </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form method="post">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="start">
-                    <div class="mb-3">
-                        <label class="form-label">Session Configuration</label>
-                        <div class="card bg-light">
-                            <div class="card-body">
+
+                    <!-- Session Configuration Summary -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Session Configuration</label>
+                        <div class="card bg-light border-0">
+                            <div class="card-body py-3">
                                 {% if current_config %}
-                                <div class="d-flex justify-content-between">
-                                    <div>
-                                        <div class="fw-medium">Live Stream URL</div>
-                                        <small class="text-muted">{{ current_config.live_url }}</small>
+                                <div class="row g-2">
+                                    <div class="col-sm-6">
+                                        <div class="fw-medium small text-muted">Live Stream URL</div>
+                                        <div class="text-truncate">{{ current_config.live_url }}</div>
                                     </div>
-                                    <div class="text-end">
-                                        <div class="fw-medium">Viewers</div>
-                                        <small class="text-muted">{{ current_config.num_viewers }}</small>
+                                    <div class="col-sm-3">
+                                        <div class="fw-medium small text-muted">Viewers</div>
+                                        <div>{{ current_config.num_viewers }}</div>
                                     </div>
-                                </div>
-                                <div class="mt-2 d-flex justify-content-between">
-                                    <div>
-                                        <div class="fw-medium">Mode</div>
-                                        <small class="text-muted">{{ current_config.headless|yesno:"Headless,Visible" }}</small>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="fw-medium">Max Duration</div>
-                                        <small class="text-muted">{{ current_config.session_max_duration }}s</small>
+                                    <div class="col-sm-3">
+                                        <div class="fw-medium small text-muted">Mode</div>
+                                        <div>{{ current_config.headless|yesno:"Headless,Visible" }}</div>
                                     </div>
                                 </div>
                                 {% else %}
                                 <div class="text-center text-muted py-2">
-                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    <i class="bi bi-exclamation-triangle me-1 text-warning"></i>
                                     No configuration found. <a href="{% url 'dashboard:settings' %}">Configure settings first</a>.
                                 </div>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label">Additional Options</label>
+
+                    <!-- Proxy Source Selection -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">
+                            <i class="bi bi-shield me-1"></i>Proxy Source
+                        </label>
+                        <p class="text-muted small mb-2">Choose which proxy pool to use for this session's viewers.</p>
+
+                        <div class="row g-3">
+                            <!-- Free Proxies Option -->
+                            <div class="col-md-4">
+                                <input type="radio" class="btn-check" name="proxy_source" id="proxyFree" value="free" autocomplete="off"
+                                    {% if free_proxy_count > 0 %}checked{% else %}disabled{% endif %}>
+                                <label class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3"
+                                       for="proxyFree" style="min-height:110px;">
+                                    <i class="bi bi-globe fs-3 mb-1"></i>
+                                    <div class="fw-semibold">Free Proxies</div>
+                                    <small class="text-muted mt-1">
+                                        {% if free_proxy_count > 0 %}
+                                            {{ free_proxy_count }} available
+                                        {% else %}
+                                            <span class="text-danger">None loaded</span>
+                                        {% endif %}
+                                    </small>
+                                    {% if free_proxy_count == 0 %}
+                                    <small class="text-danger mt-1">
+                                        <a href="{% url 'dashboard:proxies' %}" class="text-danger">Load free proxies first</a>
+                                    </small>
+                                    {% endif %}
+                                </label>
+                            </div>
+
+                            <!-- PacketStream Option -->
+                            <div class="col-md-4">
+                                <input type="radio" class="btn-check" name="proxy_source" id="proxyPacketStream" value="packetstream" autocomplete="off"
+                                    {% if not ps_enabled %}disabled{% endif %}
+                                    {% if free_proxy_count == 0 and ps_enabled %}checked{% endif %}>
+                                <label class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3
+                                    {% if not ps_enabled %}opacity-50{% endif %}"
+                                       for="proxyPacketStream" style="min-height:110px;">
+                                    <i class="bi bi-shield-check fs-3 mb-1"></i>
+                                    <div class="fw-semibold">PacketStream</div>
+                                    <small class="text-muted mt-1">Paid — Residential</small>
+                                    {% if ps_enabled %}
+                                        <small class="text-success mt-1"><i class="bi bi-check-circle me-1"></i>Configured</small>
+                                    {% else %}
+                                        <small class="text-warning mt-1">
+                                            <a href="{% url 'dashboard:proxies' %}#packetstream" class="text-warning">Configure credentials</a>
+                                        </small>
+                                    {% endif %}
+                                </label>
+                            </div>
+
+                            <!-- No Proxy / Direct Option -->
+                            <div class="col-md-4">
+                                <input type="radio" class="btn-check" name="proxy_source" id="proxyNone" value="none" autocomplete="off"
+                                    {% if free_proxy_count == 0 and not ps_enabled %}checked{% endif %}>
+                                <label class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center py-3"
+                                       for="proxyNone" style="min-height:110px;">
+                                    <i class="bi bi-slash-circle fs-3 mb-1"></i>
+                                    <div class="fw-semibold">No Proxy</div>
+                                    <small class="text-muted mt-1">Direct connection</small>
+                                    <small class="text-warning mt-1">May be detected</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Additional Options -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Additional Options</label>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="enable_logging" id="enableLogging" value="on" checked>
                             <label class="form-check-label" for="enableLogging">Enable detailed logging</label>
@@ -234,7 +317,8 @@
                             <label class="form-check-label" for="captureScreenshots">Capture screenshots for debugging</label>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-success w-100">
+
+                    <button type="submit" class="btn btn-success w-100 py-2" {% if not current_config %}disabled{% endif %}>
                         <i class="bi bi-play-circle me-2"></i>Start Session
                     </button>
                 </form>

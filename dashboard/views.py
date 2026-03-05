@@ -9,7 +9,7 @@ import uuid
 import os
 import logging
 from datetime import datetime
-from bot_management.models import BotConfiguration, Proxy, BotSession, Viewer, ProxyAutoFetchSettings
+from bot_management.models import BotConfiguration, Proxy, BotSession, Viewer, ProxyAutoFetchSettings, PacketStreamSettings
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +193,35 @@ def proxy_management(request):
             except Proxy.DoesNotExist:
                 response_data = {'success': False, 'message': 'Proxy not found!'}
 
+        elif action == 'test_packetstream_ajax':
+            # Test PacketStream connection with provided credentials (AJAX only)
+            import requests as req
+            username = request.POST.get('ps_username', '').strip()
+            cik = request.POST.get('ps_cik', '').strip()
+            host = request.POST.get('ps_host', 'proxy.packetstream.io').strip()
+            try:
+                port = int(request.POST.get('ps_port', 31112))
+            except ValueError:
+                port = 31112
+            if not username or not cik:
+                response_data = {'success': False, 'message': 'Username and CIK are required.'}
+            else:
+                proxy_url = f'http://{username}:{cik}@{host}:{port}'
+                proxies_dict = {'http': proxy_url, 'https': proxy_url}
+                try:
+                    r = req.get('https://api.ipify.org?format=json', proxies=proxies_dict, timeout=15)
+                    if r.status_code == 200:
+                        ip = r.json().get('ip', 'unknown')
+                        response_data = {'success': True, 'message': f'Connection successful! Your proxied IP: {ip}'}
+                    else:
+                        response_data = {'success': False, 'message': f'Proxy returned HTTP {r.status_code}. Check your credentials.'}
+                except req.exceptions.ProxyError as e:
+                    response_data = {'success': False, 'message': f'Proxy authentication failed. Check your username and CIK. ({e})'}
+                except req.exceptions.ConnectTimeout:
+                    response_data = {'success': False, 'message': 'Connection timed out. The proxy may be down or your IP is not whitelisted.'}
+                except Exception as e:
+                    response_data = {'success': False, 'message': f'Connection failed: {str(e)}'}
+
         return JsonResponse(response_data)
 
     # Handle regular (non-AJAX) POST requests - redirect after processing
@@ -235,11 +264,32 @@ def proxy_management(request):
         elif action == 'test_all':
             messages.info(request, 'Proxy testing initiated. Results will appear shortly.')
 
-        return redirect('dashboard:proxies')
+        # PacketStream settings save
+        elif action == 'save_packetstream':
+            ps = PacketStreamSettings.get_settings()
+            ps.username = request.POST.get('ps_username', '').strip()
+            ps.cik = request.POST.get('ps_cik', '').strip()
+            ps.host = request.POST.get('ps_host', 'proxy.packetstream.io').strip()
+            try:
+                ps.port = int(request.POST.get('ps_port', 31112))
+            except ValueError:
+                ps.port = 31112
+            ps.is_enabled = request.POST.get('ps_enabled') == 'on'
+            ps.save()
+            messages.success(request, 'PacketStream settings saved successfully!')
 
+        # PacketStream connection test (non-AJAX fallback)
+        elif action == 'test_packetstream':
+            ps = PacketStreamSettings.get_settings()
+            ok, info = ps.test_connection()
+            if ok:
+                messages.success(request, f'PacketStream proxy is working! Your IP: {info}')
+            else:
+                messages.error(request, f'PacketStream proxy test failed: {info}')
+
+        return redirect('dashboard:proxies')
     # GET request
     proxies = Proxy.objects.all().order_by('-created_at')
-
     # Get free proxy sources for context
     free_sources = [
         {
@@ -262,13 +312,21 @@ def proxy_management(request):
     # Calculate proxy statistics
     total_proxies = proxies.count()
     active_proxies = proxies.filter(is_active=True).count()
+    free_proxies_count = proxies.filter(proxy_type='free', is_active=True).count()
+    ps_proxies_count = proxies.filter(proxy_type='packetstream', is_active=True).count()
+
+    # PacketStream settings
+    ps_settings = PacketStreamSettings.get_settings()
 
     context = {
         'proxies': proxies,
         'free_proxy_sources': free_sources,
         'total_proxies': total_proxies,
         'active_proxies': active_proxies,
-        'show_examples': False,  # Never show fake example proxies
+        'free_proxies_count': free_proxies_count,
+        'ps_proxies_count': ps_proxies_count,
+        'ps_settings': ps_settings,
+        'show_examples': False,
         'example_proxies': [],
     }
 
@@ -451,35 +509,45 @@ def bot_control(request):
                 config = BotConfiguration(created_by=request.user)
                 config.save()
 
+            # Get the proxy source the user selected in the modal
+            proxy_source = request.POST.get('proxy_source', 'free')
+            if proxy_source not in ('free', 'packetstream', 'none'):
+                proxy_source = 'free'
+
+            # Validate PacketStream is configured if selected
+            if proxy_source == 'packetstream':
+                ps_settings = PacketStreamSettings.get_settings()
+                if not ps_settings.is_enabled or not ps_settings.username or not ps_settings.cik:
+                    messages.error(request, 'PacketStream is not configured. Please set your credentials in the Proxies page first.')
+                    return redirect('dashboard:control')
+
             session_id = str(uuid.uuid4())[:8]
             session = BotSession.objects.create(
                 session_id=session_id,
                 configuration=config,
                 status='started',
+                proxy_source=proxy_source,
                 viewers_count=config.num_viewers,
             )
 
-            # Immediately create Viewer records so the dashboard shows them right away.
-            # The background bot process will update their status as it runs.
-            active_proxies = list(Proxy.objects.filter(is_active=True))
+            # Pre-create Viewer records immediately so the dashboard shows them right away
             for i in range(config.num_viewers):
-                proxy_obj = active_proxies[i % len(active_proxies)] if active_proxies else None
-                Viewer.objects.create(
+                Viewer.objects.get_or_create(
                     session=session,
                     viewer_id=i + 1,
-                    proxy_used=proxy_obj,
-                    status='starting',
+                    defaults={'status': 'starting'},
                 )
 
             # Actually start the bot process in the background
             try:
                 from bot_management.task_runner import start_bot_session
-                success = start_bot_session(session_id, config.id)
+                success = start_bot_session(session_id, config.id, proxy_source=proxy_source)
 
                 if success:
                     session.status = 'running'
                     session.save()
-                    messages.success(request, f'Bot session {session_id} started with {config.num_viewers} viewers!')
+                    source_label = {'free': 'free proxies', 'packetstream': 'PacketStream', 'none': 'no proxy'}.get(proxy_source, proxy_source)
+                    messages.success(request, f'Bot session {session_id} started with {config.num_viewers} viewers using {source_label}!')
                 else:
                     messages.warning(request, f'Session created but failed to start bot process. Session ID: {session_id}')
             except Exception as e:
@@ -527,12 +595,19 @@ def bot_control(request):
     except BotConfiguration.DoesNotExist:
         current_config = None
 
+    # Proxy source availability for the modal
+    free_proxy_count = Proxy.objects.filter(proxy_type='free', is_active=True).count()
+    ps_settings = PacketStreamSettings.get_settings()
+    ps_enabled = ps_settings.is_enabled and bool(ps_settings.username) and bool(ps_settings.cik)
+
     context = {
         'active_sessions': active_sessions,
         'recent_sessions': recent_sessions,
         'current_config': current_config,
         'overall_success_rate': overall_success_rate,
         'sys_uptime': sys_stats['uptime'],
+        'free_proxy_count': free_proxy_count,
+        'ps_enabled': ps_enabled,
     }
 
     return render(request, 'dashboard/control.html', context)

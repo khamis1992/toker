@@ -39,3 +39,117 @@
 2026-03-04 20:41:29,513 - INFO - Viewer 2: Loading page...
 2026-03-04 20:41:29,544 - INFO - Viewer 1: Loading page...
 2026-03-04 20:41:29,544 - INFO - Viewer 3: Loading page...
+2026-03-05 15:07:22,542 - INFO - Viewer 1: Starting session
+2026-03-05 15:07:22,542 - INFO - Viewer 2: Starting session
+2026-03-05 15:07:22,542 - INFO - Viewer 3: Starting session
+2026-03-05 15:07:24,069 - INFO - Viewer 2: Using proxy http://test-proxy.example.com:8080
+2026-03-05 15:07:24,069 - INFO - Viewer 2: Starting browser...
+2026-03-05 15:07:24,089 - INFO - Viewer 3: Using proxy http://test.example.com:8080
+2026-03-05 15:07:24,089 - INFO - Viewer 3: Starting browser...
+2026-03-05 15:07:24,092 - INFO - Viewer 1: Using proxy http://test-proxy.example.com:8080
+2026-03-05 15:07:24,092 - INFO - Viewer 1: Starting browser...
+2026-03-05 15:07:24,095 - ERROR - Viewer 2: Session failed: Viewer 2: Unexpected error: BrowserType.launch: Executable doesn't exist at /home/ubuntu/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     playwright install                                     ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+2026-03-05 15:07:24,101 - ERROR - Viewer 3: Session failed: Viewer 3: Unexpected error: BrowserType.launch: Executable doesn't exist at /home/ubuntu/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     playwright install                                     ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+2026-03-05 15:07:24,103 - ERROR - Viewer 1: Session failed: Viewer 1: Unexpected error: BrowserType.launch: Executable doesn't exist at /home/ubuntu/.cache/ms-playwright/chromium_headless_shell-1187/chrome-linux/headless_shell
+╔════════════════════════════════════════════════════════════╗
+║ Looks like Playwright was just installed or updated.       ║
+║ Please run the following command to download new browsers: ║
+║                                                            ║
+║     playwright install                                     ║
+║                                                            ║
+║ <3 Playwright Team                                         ║
+╚════════════════════════════════════════════════════════════╝
+2026-03-05 15:08:04,880 - INFO - Viewer 1: Starting session
+2026-03-05 15:08:04,880 - INFO - Viewer 2: Starting session
+2026-03-05 15:08:04,880 - INFO - Viewer 3: Starting session
+2026-03-05 15:08:05,230 - INFO - Viewer 3: Using proxy http://test.example.com:8080
+2026-03-05 15:08:05,230 - INFO - Viewer 3: Starting browser...
+2026-03-05 15:08:05,236 - INFO - Viewer 1: Using proxy http://test-proxy.example.com:8080
+2026-03-05 15:08:05,237 - INFO - Viewer 1: Starting browser...
+2026-03-05 15:08:05,238 - INFO - Viewer 2: Using proxy http://test.example.com:8080
+2026-03-05 15:08:05,238 - INFO - Viewer 2: Starting browser...
+2026-03-05 15:08:18,612 - INFO - Viewer 3: Loading page...
+2026-03-05 15:08:18,631 - INFO - Viewer 1: Loading page...
+2026-03-05 15:08:18,636 - INFO - Viewer 2: Loading page...
+2026-03-05 15:08:18,685 - INFO - Viewer 2: Browser closed
+2026-03-05 15:08:18,686 - ERROR - Viewer 2: Session failed: Viewer 2: Failed to load page: Page.goto: net::ERR_PROXY_CONNECTION_FAILED at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "load"
+
+2026-03-05 15:08:18,688 - INFO - Viewer 3: Browser closed
+2026-03-05 15:08:18,688 - ERROR - Viewer 3: Session failed: Viewer 3: Failed to load page: Page.goto: net::ERR_PROXY_CONNECTION_FAILED at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "load"
+
+2026-03-05 15:08:18,698 - INFO - Viewer 1: Browser closed
+2026-03-05 15:08:18,699 - ERROR - Viewer 1: Session failed: Viewer 1: Failed to load page: Page.goto: net::ERR_PROXY_CONNECTION_FAILED at https://www.tiktok.com/@khamish92/live
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "load"
+
+2026-03-05 15:10:51,269 - INFO - Viewer 1: Starting session
+2026-03-05 15:10:51,269 - INFO - Viewer 2: Starting session
+2026-03-05 15:10:51,269 - INFO - Viewer 3: Starting session
+2026-03-05 15:10:51,615 - INFO - Viewer 2: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:10:51,615 - INFO - Viewer 2: Starting browser...
+2026-03-05 15:10:51,633 - INFO - Viewer 1: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:10:51,633 - INFO - Viewer 1: Starting browser...
+2026-03-05 15:10:51,646 - INFO - Viewer 3: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:10:51,646 - INFO - Viewer 3: Starting browser...
+2026-03-05 15:10:51,911 - INFO - Viewer 2: Loading page...
+2026-03-05 15:10:51,913 - INFO - Viewer 1: Loading page...
+2026-03-05 15:10:51,916 - INFO - Viewer 3: Loading page...
+2026-03-05 15:11:51,946 - INFO - Viewer 2: Browser closed
+2026-03-05 15:11:51,946 - ERROR - Viewer 2: Session failed: Viewer 2: Timeout loading page: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "load"
+
+2026-03-05 15:11:51,947 - INFO - Viewer 1: Browser closed
+2026-03-05 15:11:51,948 - ERROR - Viewer 1: Session failed: Viewer 1: Timeout loading page: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "load"
+
+2026-03-05 15:11:51,948 - INFO - Viewer 3: Browser closed
+2026-03-05 15:11:51,949 - ERROR - Viewer 3: Session failed: Viewer 3: Timeout loading page: Page.goto: Timeout 60000ms exceeded.
+Call log:
+  - navigating to "https://www.tiktok.com/@khamish92/live", waiting until "load"
+
+2026-03-05 15:13:40,445 - INFO - Viewer 1: Starting session
+2026-03-05 15:13:40,445 - INFO - Viewer 2: Starting session
+2026-03-05 15:13:40,445 - INFO - Viewer 3: Starting session
+2026-03-05 15:13:40,803 - INFO - Viewer 1: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:13:40,803 - INFO - Viewer 1: Starting browser...
+2026-03-05 15:13:40,817 - INFO - Viewer 3: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:13:40,817 - INFO - Viewer 3: Starting browser...
+2026-03-05 15:13:40,829 - INFO - Viewer 2: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:13:40,829 - INFO - Viewer 2: Starting browser...
+2026-03-05 15:13:40,990 - INFO - Viewer 1: Loading page...
+2026-03-05 15:13:40,993 - INFO - Viewer 3: Loading page...
+2026-03-05 15:13:40,998 - INFO - Viewer 2: Loading page...
+2026-03-05 15:16:31,923 - INFO - Viewer 1: Starting session
+2026-03-05 15:16:31,923 - INFO - Viewer 2: Starting session
+2026-03-05 15:16:31,923 - INFO - Viewer 3: Starting session
+2026-03-05 15:16:32,278 - INFO - Viewer 3: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:16:32,279 - INFO - Viewer 3: Starting browser...
+2026-03-05 15:16:32,283 - INFO - Viewer 1: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:16:32,283 - INFO - Viewer 1: Starting browser...
+2026-03-05 15:16:32,292 - INFO - Viewer 2: Using proxy http://khamis1992:zWoUVToxxgp3nYGE@proxy.packetstream.io:31112
+2026-03-05 15:16:32,292 - INFO - Viewer 2: Starting browser...
+2026-03-05 15:16:32,448 - INFO - Viewer 3: Loading page...
+2026-03-05 15:16:32,449 - INFO - Viewer 2: Loading page...
+2026-03-05 15:16:32,450 - INFO - Viewer 1: Loading page...
