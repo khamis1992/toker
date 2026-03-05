@@ -1,0 +1,226 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Bot Control - TikTok Bot{% endblock %}
+{% block page_title %}Bot Control{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Bot Control Panel</h5>
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#startSessionModal">
+                    <i class="bi bi-play-circle me-2"></i>Start New Session
+                </button>
+            </div>
+            <div class="card-body">
+                <!-- Start Session Modal -->
+                <div class="modal fade" id="startSessionModal" tabindex="-1">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Start New Bot Session</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="start">
+                                    <div class="mb-3">
+                                        <label class="form-label">Session Configuration</label>
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between">
+                                                    <div>
+                                                        <div class="fw-medium">Live Stream URL</div>
+                                                        <small class="text-muted">https://www.tiktok.com/@khamish92/live</small>
+                                                    </div>
+                                                    <div class="text-end">
+                                                        <div class="fw-medium">Viewers</div>
+                                                        <small class="text-muted">3</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Additional Options</label>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="enableLogging" checked>
+                                            <label class="form-check-label" for="enableLogging">Enable detailed logging</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" id="captureScreenshots">
+                                            <label class="form-check-label" for="captureScreenshots">Capture screenshots for debugging</label>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-success w-100">
+                                        <i class="bi bi-play-circle me-2"></i>Start Session
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Active Sessions -->
+                <h6 class="mb-3">Active Sessions</h6>
+                {% if active_sessions %}
+                    <div class="row">
+                        {% for session in active_sessions %}
+                        <div class="col-md-6 col-lg-4 mb-4">
+                            <div class="card border-{% if session.status == 'running' %}success{% elif session.status == 'started' %}info{% else %}secondary{% endif %}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-3">
+                                        <div>
+                                            <h6 class="card-title mb-0">Session {{ session.session_id }}</h6>
+                                            <small class="text-muted">{{ session.start_time|date:"M d, H:i" }}</small>
+                                        </div>
+                                        <span class="badge bg-{% if session.status == 'running' %}success{% elif session.status == 'started' %}info{% else %}secondary{% endif %}">
+                                            {{ session.status|title }}
+                                        </span>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-6">
+                                            <small class="text-muted">Viewers</small>
+                                            <div class="fw-medium">{{ session.viewers_count }}</div>
+                                        </div>
+                                        <div class="col-6">
+                                            <small class="text-muted">Success</small>
+                                            <div class="fw-medium">{{ session.success_count }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="progress mb-3" style="height: 8px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio session.success_count session.viewers_count 100 %}%"></div>
+                                    </div>
+                                    <div class="d-flex">
+                                        <form method="post" class="flex-grow-1 me-2">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="stop">
+                                            <input type="hidden" name="session_id" value="{{ session.session_id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger w-100">
+                                                <i class="bi bi-stop-circle me-1"></i>Stop
+                                            </button>
+                                        </form>
+                                        <a href="{% url 'dashboard:session_detail' session.session_id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-play-circle text-muted" style="font-size: 3rem;"></i>
+                        <h4 class="mt-3">No Active Sessions</h4>
+                        <p class="text-muted">Start a new session to begin monitoring TikTok streams.</p>
+                        <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#startSessionModal">
+                            <i class="bi bi-play-circle me-2"></i>Start Your First Session
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white border-0">
+                <h5 class="card-title mb-0">Recent Sessions</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_sessions %}
+                    <div class="table-responsive">
+                        <table class="table table-dashboard">
+                            <thead>
+                                <tr>
+                                    <th>Session ID</th>
+                                    <th>Status</th>
+                                    <th>Viewers</th>
+                                    <th>Success</th>
+                                    <th>Duration</th>
+                                    <th>Started</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for session in recent_sessions %}
+                                <tr>
+                                    <td>
+                                        <div>{{ session.session_id }}</div>
+                                        <small class="text-muted">{{ session.configuration.live_url|truncatechars:30 }}</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge badge-dashboard bg-{% if session.status == 'completed' %}success{% elif session.status == 'failed' %}danger{% elif session.status == 'running' %}primary{% else %}secondary{% endif %}">
+                                            {{ session.status|title }}
+                                        </span>
+                                    </td>
+                                    <td>{{ session.viewers_count }}</td>
+                                    <td>{{ session.success_count }}</td>
+                                    <td>
+                                        {% if session.end_time %}
+                                            {{ session.end_time|timesince:session.start_time }}
+                                        {% else %}
+                                            {{ session.start_time|timesince }} ago
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ session.start_time|date:"M d, H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'dashboard:session_detail' session.session_id %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye me-1"></i>Details
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-clock-history text-muted" style="font-size: 2rem;"></i>
+                        <p class="mt-2 text-muted">No recent sessions found.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white border-0">
+                <h5 class="card-title mb-0">Quick Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-4 mb-md-0">
+                        <div class="display-4 text-primary">{{ active_sessions|length }}</div>
+                        <div class="fw-medium">Active Sessions</div>
+                        <div class="text-muted small">Currently running</div>
+                    </div>
+                    <div class="col-md-3 mb-4 mb-md-0">
+                        <div class="display-4 text-success">{{ recent_sessions|length }}</div>
+                        <div class="fw-medium">Total Sessions</div>
+                        <div class="text-muted small">In last 24 hours</div>
+                    </div>
+                    <div class="col-md-3 mb-4 mb-md-0">
+                        <div class="display-4 text-info">92%</div>
+                        <div class="fw-medium">Success Rate</div>
+                        <div class="text-muted small">Average performance</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="display-4 text-warning">24h</div>
+                        <div class="fw-medium">Uptime</div>
+                        <div class="text-muted small">System availability</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

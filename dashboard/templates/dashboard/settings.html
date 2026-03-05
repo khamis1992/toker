@@ -1,0 +1,253 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Bot Settings - TikTok Bot{% endblock %}
+{% block page_title %}Bot Settings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Bot Configuration</h5>
+                <div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="resetForm()">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <form method="post" id="settingsForm">
+                    {% csrf_token %}
+                    
+                    {% if current_config.id %}
+                        <input type="hidden" name="config_id" value="{{ current_config.id }}">
+                    {% endif %}
+                    
+                    <ul class="nav nav-tabs" id="settingsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button">Basic</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="timing-tab" data-bs-toggle="tab" data-bs-target="#timing" type="button">Timing</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="browser-tab" data-bs-toggle="tab" data-bs-target="#browser" type="button">Browser</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="advanced-tab" data-bs-toggle="tab" data-bs-target="#advanced" type="button">Advanced</button>
+                        </li>
+                    </ul>
+                    
+                    <div class="tab-content mt-4" id="settingsTabContent">
+                        <!-- Basic Settings Tab -->
+                        <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-4">
+                                        <label for="live_url" class="form-label fw-medium">Live Stream URL</label>
+                                        <input type="url" class="form-control form-control-dashboard" id="live_url" name="live_url" value="{{ current_config.live_url }}" required>
+                                        <div class="form-text">The TikTok live stream URL to target.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="mb-4">
+                                        <label for="num_viewers" class="form-label fw-medium">Number of Viewers</label>
+                                        <input type="number" class="form-control form-control-dashboard" id="num_viewers" name="num_viewers" value="{{ current_config.num_viewers }}" min="1" max="100" required>
+                                        <div class="form-text">How many simultaneous viewers to create.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="form-check form-switch mb-4">
+                                <input class="form-check-input" type="checkbox" id="headless" name="headless" {% if current_config.headless %}checked{% endif %}>
+                                <label class="form-check-label fw-medium" for="headless">Run in Headless Mode</label>
+                                <div class="form-text">Run browsers without GUI for better performance.</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Timing Settings Tab -->
+                        <div class="tab-pane fade" id="timing" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-4">
+                                        <label for="page_load_timeout" class="form-label fw-medium">Page Load Timeout (ms)</label>
+                                        <input type="number" class="form-control form-control-dashboard" id="page_load_timeout" name="page_load_timeout" value="{{ current_config.page_load_timeout }}">
+                                        <div class="form-text">Maximum time to wait for page to load.</div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label for="session_max_duration" class="form-label fw-medium">Max Session Duration (seconds)</label>
+                                        <input type="number" class="form-control form-control-dashboard" id="session_max_duration" name="session_max_duration" value="{{ current_config.session_max_duration }}">
+                                        <div class="form-text">Maximum time for each viewer session.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-4">
+                                                <label for="keepalive_min_interval" class="form-label fw-medium">Min Keepalive Interval (s)</label>
+                                                <input type="number" class="form-control form-control-dashboard" id="keepalive_min_interval" name="keepalive_min_interval" value="{{ current_config.keepalive_min_interval }}">
+                                                <div class="form-text">Minimum time between actions.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-4">
+                                                <label for="keepalive_max_interval" class="form-label fw-medium">Max Keepalive Interval (s)</label>
+                                                <input type="number" class="form-control form-control-dashboard" id="keepalive_max_interval" name="keepalive_max_interval" value="{{ current_config.keepalive_max_interval }}">
+                                                <div class="form-text">Maximum time between actions.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Browser Settings Tab -->
+                        <div class="tab-pane fade" id="browser" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-4">
+                                                <label for="window_width" class="form-label fw-medium">Window Width</label>
+                                                <input type="number" class="form-control form-control-dashboard" id="window_width" name="window_width" value="{{ current_config.window_width }}">
+                                                <div class="form-text">Browser window width in pixels.</div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="mb-4">
+                                                <label for="window_height" class="form-label fw-medium">Window Height</label>
+                                                <input type="number" class="form-control form-control-dashboard" id="window_height" name="window_height" value="{{ current_config.window_height }}">
+                                                <div class="form-text">Browser window height in pixels.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-check form-switch mb-4">
+                                        <input class="form-check-input" type="checkbox" id="debug_screenshots" name="debug_screenshots" {% if current_config.debug_screenshots %}checked{% endif %}>
+                                        <label class="form-check-label fw-medium" for="debug_screenshots">Enable Debug Screenshots</label>
+                                        <div class="form-text">Capture screenshots for debugging failed sessions.</div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label for="screenshot_dir" class="form-label fw-medium">Screenshot Directory</label>
+                                        <input type="text" class="form-control form-control-dashboard" id="screenshot_dir" name="screenshot_dir" value="{{ current_config.screenshot_dir }}">
+                                        <div class="form-text">Directory to save debug screenshots.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Browser Settings Tips</h6>
+                                            <ul class="mb-0 small">
+                                                <li>Window size affects detection rates</li>
+                                                <li>Larger windows use more resources</li>
+                                                <li>Screenshots help debug failures</li>
+                                                <li>Headless mode improves performance</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Advanced Settings Tab -->
+                        <div class="tab-pane fade" id="advanced" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-4">
+                                        <label for="max_retry_attempts" class="form-label fw-medium">Max Retry Attempts</label>
+                                        <input type="number" class="form-control form-control-dashboard" id="max_retry_attempts" name="max_retry_attempts" value="{{ current_config.max_retry_attempts }}">
+                                        <div class="form-text">Maximum number of retry attempts for failed operations.</div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label for="base_retry_delay" class="form-label fw-medium">Base Retry Delay (seconds)</label>
+                                        <input type="number" class="form-control form-control-dashboard" id="base_retry_delay" name="base_retry_delay" value="{{ current_config.base_retry_delay }}" step="0.1">
+                                        <div class="form-text">Base delay between retry attempts.</div>
+                                    </div>
+                                    
+                                    <div class="mb-4">
+                                        <label for="log_level" class="form-label fw-medium">Log Level</label>
+                                        <select class="form-select form-control-dashboard" id="log_level" name="log_level">
+                                            <option value="DEBUG" {% if current_config.log_level == 'DEBUG' %}selected{% endif %}>Debug</option>
+                                            <option value="INFO" {% if current_config.log_level == 'INFO' %}selected{% endif %}>Info</option>
+                                            <option value="WARNING" {% if current_config.log_level == 'WARNING' %}selected{% endif %}>Warning</option>
+                                            <option value="ERROR" {% if current_config.log_level == 'ERROR' %}selected{% endif %}>Error</option>
+                                        </select>
+                                        <div class="form-text">Verbosity level for logging output.</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">Advanced Settings Guide</h6>
+                                            <ul class="mb-0 small">
+                                                <li>Increase retries for unstable networks</li>
+                                                <li>Higher log levels for debugging</li>
+                                                <li>Adjust delays to avoid rate limits</li>
+                                                <li>Lower delays for faster recovery</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4">
+                                        <button type="button" class="btn btn-outline-secondary" onclick="loadDefaults()">
+                                            <i class="bi bi-arrow-clockwise"></i> Load Recommended Defaults
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 pt-3 border-top">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="bi bi-save me-2"></i>Save Settings
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary ms-2" onclick="previewSettings()">
+                            <i class="bi bi-eye me-2"></i>Preview Changes
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function resetForm() {
+    if (confirm('Are you sure you want to reset all settings to their current values?')) {
+        document.getElementById('settingsForm').reset();
+    }
+}
+
+function loadDefaults() {
+    if (confirm('Load recommended default settings? This will overwrite current values.')) {
+        // Set recommended defaults
+        document.getElementById('live_url').value = 'https://www.tiktok.com/@khamish92/live';
+        document.getElementById('num_viewers').value = 3;
+        document.getElementById('headless').checked = true;
+        document.getElementById('page_load_timeout').value = 60000;
+        document.getElementById('session_max_duration').value = 1800;
+        document.getElementById('keepalive_min_interval').value = 30;
+        document.getElementById('keepalive_max_interval').value = 60;
+        document.getElementById('window_width').value = 1366;
+        document.getElementById('window_height').value = 768;
+        document.getElementById('debug_screenshots').checked = true;
+        document.getElementById('screenshot_dir').value = 'screenshots';
+        document.getElementById('max_retry_attempts').value = 3;
+        document.getElementById('base_retry_delay').value = 2.0;
+        document.getElementById('log_level').value = 'INFO';
+    }
+}
+
+function previewSettings() {
+    alert('Settings preview would show a simulation of how these settings would affect your bot performance.');
+}
+</script>
+{% endblock %}

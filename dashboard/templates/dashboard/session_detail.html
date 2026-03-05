@@ -1,0 +1,244 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Session {{ session.session_id }} Details - TikTok Bot{% endblock %}
+{% block page_title %}Session Details{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Session #{{ session.session_id }}</h5>
+                <div>
+                    {% if session.status == 'running' or session.status == 'started' %}
+                    <form method="post" class="d-inline" action="{% url 'dashboard:control' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="stop">
+                        <input type="hidden" name="session_id" value="{{ session.session_id }}">
+                        <button type="submit" class="btn btn-danger">
+                            <i class="bi bi-stop-circle me-2"></i>Stop Session
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="{% url 'dashboard:control' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-arrow-left me-2"></i>Back
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-light mb-4">
+                            <div class="card-body">
+                                <h6 class="card-title">Session Information</h6>
+                                <div class="row">
+                                    <div class="col-sm-6">
+                                        <div class="mb-3">
+                                            <small class="text-muted">Status</small>
+                                            <div>
+                                                <span class="badge bg-{% if session.status == 'running' %}success{% elif session.status == 'completed' %}primary{% elif session.status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                                    {{ session.status|title }}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Total Viewers</small>
+                                            <div class="fw-medium">{{ session.viewers_count }}</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Successful</small>
+                                            <div class="fw-medium">{{ session.success_count }}</div>
+                                        </div>
+                                        <div>
+                                            <small class="text-muted">Errors</small>
+                                            <div class="fw-medium">{{ session.error_count }}</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-6">
+                                        <div class="mb-3">
+                                            <small class="text-muted">Started</small>
+                                            <div class="fw-medium">{{ session.start_time|date:"M d, Y H:i:s" }}</div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Ended</small>
+                                            <div class="fw-medium">
+                                                {% if session.end_time %}
+                                                    {{ session.end_time|date:"M d, Y H:i:s" }}
+                                                {% else %}
+                                                    --
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div class="mb-3">
+                                            <small class="text-muted">Duration</small>
+                                            <div class="fw-medium">
+                                                {% if session.end_time %}
+                                                    {{ session.end_time|timesince:session.start_time }}
+                                                {% else %}
+                                                    {{ session.start_time|timesince }} ago
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <small class="text-muted">Configuration</small>
+                                            <div class="fw-medium">#{{
+ session.configuration.id }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-body">
+                                <h6 class="card-title">Performance Metrics</h6>
+                                <div class="row text-center">
+                                    <div class="col-4">
+                                        <div class="display-6 text-primary">{{ session.success_count|divide:session.viewers_count|multiply:100|floatformat:0 }}%</div>
+                                        <div class="text-muted small">Success Rate</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="display-6 text-success">{{ session.success_count }}</div>
+                                        <div class="text-muted small">Success</div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="display-6 text-danger">{{ session.error_count }}</div>
+                                        <div class="text-muted small">Errors</div>
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <div class="d-flex justify-content-between mb-1">
+                                        <span>Success Rate</span>
+                                        <span>{{ session.success_count|divide:session.viewers_count|multiply:100|floatformat:0 }}%</span>
+                                    </div>
+                                    <div class="progress">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {% widthratio session.success_count session.viewers_count 100 %}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Viewer Status</h6>
+                    {% if viewers %}
+                        <div class="table-responsive">
+                            <table class="table table-dashboard">
+                                <thead>
+                                    <tr>
+                                        <th>Viewer ID</th>
+                                        <th>Status</th>
+                                        <th>Proxy Used</th>
+                                        <th>Comments</th>
+                                        <th>Reactions</th>
+                                        <th>Started</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for viewer in viewers %}
+                                    <tr>
+                                        <td>
+                                            <div>Viewer-{{ viewer.viewer_id }}</div>
+                                            <small class="text-muted">#{{ viewer.id }}</small>
+                                        </td>
+                                        <td>
+                                            <span class="badge badge-dashboard bg-{% if viewer.status == 'running' %}success{% elif viewer.status == 'completed' %}primary{% elif viewer.status == 'failed' %}danger{% else %}secondary{% endif %}">
+                                                {{ viewer.status|title }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            {% if viewer.proxy_used %}
+                                                <div>{{ viewer.proxy_used.proxy_url|truncatechars:25 }}</div>
+                                                <small class="text-muted">{{ viewer.proxy_used.id }}</small>
+                                            {% else %}
+                                                <span class="text-muted">None</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ viewer.comments_sent }}</td>
+                                        <td>{{ viewer.reactions_made }}</td>
+                                        <td>{{ viewer.start_time|date:"H:i:s" }}</td>
+                                        <td>
+                                            <button class="btn btn-sm btn-outline-primary" title="View Details">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="bi bi-people text-muted" style="font-size: 2rem;"></i>
+                            <p class="mt-2 text-muted">No viewer data available for this session.</p>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Session Timeline</h6>
+                    <div class="timeline-steps">
+                        <div class="d-flex position-relative mb-4">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="rounded-circle bg-success p-2 text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                    <i class="bi bi-play-fill"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Session Started</h6>
+                                <p class="text-muted mb-1">{{ session.start_time|date:"M d, Y H:i:s" }}</p>
+                                <p class="mb-0">Initialized with {{ session.viewers_count }} viewers</p>
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex position-relative mb-4">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="rounded-circle bg-info p-2 text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Viewers Activated</h6>
+                                <p class="text-muted mb-1">5 seconds after start</p>
+                                <p class="mb-0">All {{ session.viewers_count }} viewers connected successfully</p>
+                            </div>
+                        </div>
+                        
+                        {% if session.status == 'completed' or session.status == 'failed' %}
+                        <div class="d-flex position-relative">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="rounded-circle {% if session.status == 'completed' %}bg-success{% else %}bg-danger{% endif %} p-2 text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                    <i class="bi {% if session.status == 'completed' %}bi-check-circle-fill{% else %}bi-x-circle-fill{% endif %}"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Session {{ session.status|title }}</h6>
+                                <p class="text-muted mb-1">{{ session.end_time|date:"M d, Y H:i:s" }}</p>
+                                <p class="mb-0">{% if session.status == 'completed' %}Session completed successfully{% else %}Session ended with errors{% endif %}</p>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="d-flex position-relative">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="rounded-circle bg-warning p-2 text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                                    <i class="bi bi-hourglass-split"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">Session Running</h6>
+                                <p class="text-muted mb-1">Currently active</p>
+                                <p class="mb-0">Session has been running for {{ session.start_time|timesince }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

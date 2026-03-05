@@ -1,0 +1,8 @@
+transformers>=4.35.0
+torch>=2.1.0
+numpy>=1.24.0
+sounddevice>=0.4.6
+pyaudio>=0.2.13
+speechrecognition>=3.10.0
+textblob>=0.17.1
+emoji>=2.8.0

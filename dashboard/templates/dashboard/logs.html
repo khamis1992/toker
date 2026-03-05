@@ -1,0 +1,217 @@
+{% extends 'dashboard/base.html' %}
+
+{% block title %}Logs - TikTok Bot{% endblock %}
+{% block page_title %}System Logs{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">System Logs</h5>
+                <div class="d-flex">
+                    <select class="form-select form-select-sm me-2" id="log-level-filter" style="width: 150px;">
+                        <option value="all">All Levels</option>
+                        <option value="error">Errors Only</option>
+                        <option value="warning">Warnings Only</option>
+                        <option value="info">Info Only</option>
+                    </select>
+                    <button class="btn btn-sm btn-outline-primary me-2" id="refresh-logs">
+                        <i class="bi bi-arrow-repeat"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger" id="clear-logs">
+                        <i class="bi bi-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-3 border-bottom bg-light">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="badge bg-primary">INFO</span>
+                            <span class="badge bg-warning">WARNING</span>
+                            <span class="badge bg-danger">ERROR</span>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="auto-refresh" checked>
+                            <label class="form-check-label" for="auto-refresh">Auto-refresh</label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-dark text-light p-4" style="height: 500px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.875rem;" id="log-container">
+                    <div class="text-muted mb-2">$ TikTok Bot Dashboard v1.0</div>
+                    <div class="text-muted mb-2">$ System initialized successfully</div>
+                    <div class="text-info mb-2">[INFO] 2024-03-05 14:30:15 - Starting Django development server...</div>
+                    <div class="text-success mb-2">[SUCCESS] 2024-03-05 14:30:18 - Server started successfully on port 8000</div>
+                    <div class="text-info mb-2">[INFO] 2024-03-05 14:30:22 - User 'admin' logged in from 127.0.0.1</div>
+                    <div class="text-warning mb-2">[WARNING] 2024-03-05 14:32:45 - High memory usage detected (85%)</div>
+                    <div class="text-info mb-2">[INFO] 2024-03-05 14:35:10 - Proxy health check initiated</div>
+                    <div class="text-success mb-2">[SUCCESS] 2024-03-05 14:35:15 - 8/10 proxies are operational</div>
+                    <div class="text-error mb-2">[ERROR] 2024-03-05 14:37:22 - Failed to connect to proxy: Connection timed out</div>
+                    <div class="text-info mb-2">[INFO] 2024-03-05 14:37:25 - Retrying with alternative proxy...</div>
+                    <div class="text-success mb-2">[SUCCESS] 2024-03-05 14:37:30 - Successfully connected with backup proxy</div>
+                    <div id="live-log-indicator" class="text-muted">
+                        <div class="spinner-grow spinner-grow-sm text-primary me-2" role="status"></div>
+                        Listening for new logs...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card dashboard-card">
+            <div class="card-header bg-white border-0">
+                <h5 class="card-title mb-0">Log Statistics</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3 mb-4 mb-md-0">
+                        <div class="display-4 text-danger">1</div>
+                        <div class="fw-medium">Errors</div>
+                        <div class="text-muted small">In last hour</div>
+                    </div>
+                    <div class="col-md-3 mb-4 mb-md-0">
+                        <div class="display-4 text-warning">2</div>
+                        <div class="fw-medium">Warnings</div>
+                        <div class="text-muted small">In last hour</div>
+                    </div>
+                    <div class="col-md-3 mb-4 mb-md-0">
+                        <div class="display-4 text-primary">24</div>
+                        <div class="fw-medium">Info Messages</div>
+                        <div class="text-muted small">In last hour</div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="display-4 text-success">96%</div>
+                        <div class="fw-medium">Success Rate</div>
+                        <div class="text-muted small">Log processing</div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <h6>Recent Activity</h6>
+                    <div class="progress-stacked">
+                        <div class="progress" role="progressbar" style="width: 70%">
+                            <div class="progress-bar bg-success"></div>
+                        </div>
+                        <div class="progress" role="progressbar" style="width: 20%">
+                            <div class="progress-bar bg-warning"></div>
+                        </div>
+                        <div class="progress" role="progressbar" style="width: 10%">
+                            <div class="progress-bar bg-danger"></div>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between small text-muted mt-2">
+                        <span>Success (70%)</span>
+                        <span>Warnings (20%)</span>
+                        <span>Errors (10%)</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const logContainer = document.getElementById('log-container');
+    const refreshBtn = document.getElementById('refresh-logs');
+    const clearBtn = document.getElementById('clear-logs');
+    const autoRefresh = document.getElementById('auto-refresh');
+    const logLevelFilter = document.getElementById('log-level-filter');
+    
+    // Auto-scroll to bottom
+    logContainer.scrollTop = logContainer.scrollHeight;
+    
+    // Refresh button
+    refreshBtn.addEventListener('click', function() {
+        this.classList.add('fa-spin');
+        setTimeout(() => {
+            this.classList.remove('fa-spin');
+            // Add a new log entry for demo
+            const now = new Date();
+            const timeString = now.toISOString().replace('T', ' ').substring(0, 19);
+            const logEntry = document.createElement('div');
+            logEntry.className = 'text-info mb-2';
+            logEntry.textContent = `[INFO] ${timeString} - Log refresh completed`;
+            document.getElementById('live-log-indicator').before(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }, 500);
+    });
+    
+    // Clear logs
+    clearBtn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to clear all logs?')) {
+            logContainer.innerHTML = '<div class="text-muted">Logs cleared at ' + new Date().toISOString().substring(0, 19).replace('T', ' ') + '</div><div id="live-log-indicator" class="text-muted"><div class="spinner-grow spinner-grow-sm text-primary me-2" role="status"></div>Listening for new logs...</div>';
+        }
+    });
+    
+    // Auto-refresh toggle
+    let refreshInterval;
+    autoRefresh.addEventListener('change', function() {
+        if (this.checked) {
+            refreshInterval = setInterval(function() {
+                // Simulate new log entry
+                const logLevels = ['text-info', 'text-success', 'text-warning'];
+                const messages = [
+                    'Periodic status check passed',
+                    'Proxy connection stable',
+                    'Memory usage at 45%',
+                    'Session viewer-3 active',
+                    'Comment engine running'
+                ];
+                
+                if (Math.random() > 0.7) { // 30% chance to add log
+                    const now = new Date();
+                    const timeString = now.toISOString().replace('T', ' ').substring(0, 19);
+                    const logLevel = logLevels[Math.floor(Math.random() * logLevels.length)];
+                    const message = messages[Math.floor(Math.random() * messages.length)];
+                    
+                    const logEntry = document.createElement('div');
+                    logEntry.className = logLevel + ' mb-2';
+                    logEntry.textContent = `[${logLevel.includes('info') ? 'INFO' : logLevel.includes('success') ? 'SUCCESS' : 'WARNING'}] ${timeString} - ${message}`;
+                    
+                    document.getElementById('live-log-indicator').before(logEntry);
+                    logContainer.scrollTop = logContainer.scrollHeight;
+                }
+            }, 3000);
+        } else {
+            clearInterval(refreshInterval);
+        }
+    });
+    
+    // Trigger initial auto-refresh if enabled
+    if (autoRefresh.checked) {
+        refreshInterval = setInterval(function() {
+            // Simulate new log entry
+            if (Math.random() > 0.7) {
+                const logLevels = ['text-info', 'text-success', 'text-warning'];
+                const messages = [
+                    'Periodic status check passed',
+                    'Proxy connection stable',
+                    'Memory usage at 45%'
+                ];
+                
+                const now = new Date();
+                const timeString = now.toISOString().replace('T', ' ').substring(0, 19);
+                const logLevel = logLevels[Math.floor(Math.random() * logLevels.length)];
+                const message = messages[Math.floor(Math.random() * messages.length)];
+                
+                const logEntry = document.createElement('div');
+                logEntry.className = logLevel + ' mb-2';
+                logEntry.textContent = `[INFO] ${timeString} - ${message}`;
+                
+                document.getElementById('live-log-indicator').before(logEntry);
+                logContainer.scrollTop = logContainer.scrollHeight;
+            }
+        }, 3000);
+    }
+});
+</script>
+{% endblock %}
