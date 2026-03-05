@@ -57,130 +57,6 @@
                     </div>
                 </div>
                 
-                <!-- Add Proxy Form (Hidden by default, shown in modal) -->
-                <div class="modal fade" id="addProxyModal" tabindex="-1">
-                    <div class="modal-dialog modal-lg">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Add New Proxy</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <ul class="nav nav-tabs" id="addProxyTabs" role="tablist">
-                                    <li class="nav-item" role="presentation">
-                                        <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button">Manual Entry</button>
-                                    </li>
-                                    <li class="nav-item" role="presentation">
-                                        <button class="nav-link" id="free-proxies-tab" data-bs-toggle="tab" data-bs-target="#free-proxies" type="button">Free Proxies</button>
-                                    </li>
-                                </ul>
-                                
-                                <div class="tab-content mt-3" id="addProxyTabContent">
-                                    <!-- Manual Entry Tab -->
-                                    <div class="tab-pane fade show active" id="manual" role="tabpanel">
-                                <form method="post" data-action="add">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="action" value="add">
-                                    <div class="mb-3">
-                                        <label for="proxy_url" class="form-label">Proxy URL</label>
-                                        <input type="text" class="form-control form-control-dashboard" name="proxy_url" id="proxy_url" placeholder="e.g., http://username:password@host:port" required>
-                                        <div class="form-text">Enter proxy in standard format with authentication if required.</div>
-                                    </div>
-                                    <div class="form-check mb-3">
-                                        <input class="form-check-input" type="checkbox" id="activateProxy" name="activateProxy" checked>
-                                        <label class="form-check-label" for="activateProxy">Activate proxy immediately</label>
-                                    </div>
-                                    <div class="alert alert-info">
-                                        <h6 class="alert-heading">Proxy Format Examples:</h6>
-                                        <code class="d-block">http://proxy.example.com:8080</code>
-                                        <code class="d-block">socks5://127.0.0.1:9050</code>
-                                        <code class="d-block">http://user:pass@proxy.example.com:8080</code>
-                                    </div>
-                                    <button type="submit" class="btn btn-primary">Add Proxy</button>
-                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                                </form>
-                                    </div>
-                                    
-                                    <!-- Free Proxies Tab -->
-                                    <div class="tab-pane fade" id="free-proxies" role="tabpanel">
-                                        <div class="alert alert-warning">
-                                            <i class="bi bi-exclamation-triangle me-2"></i>
-                                            <strong>Warning:</strong> Free proxies may be unreliable and less secure than paid proxies.
-                                        </div>
-                                        
-                                        <h6>Popular Free Proxy Sources:</h6>
-                                        <div class="row">
-                                            {% for source in free_proxy_sources %}
-                                            <div class="col-md-6 mb-3">
-                                                <div class="card">
-                                                    <div class="card-body">
-                                                        <h6 class="card-title">{{ source.name }}</h6>
-                                                        <p class="card-text small text-muted">{{ source.description }}</p>
-                                                        <a href="{{ source.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
-                                                            <i class="bi bi-box-arrow-up-right me-1"></i>Visit Site
-                                                        </a>
-                                                        <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="showProxyFormatHelp('{{ source.name }}')">
-                                                            <i class="bi bi-question-circle me-1"></i>Format Help
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            {% endfor %}
-                                        </div>
-                                        
-                                        <div class="mt-3">
-                                            <form method="post" data-action="load_free_proxies">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="load_free_proxies">
-                                                <button type="submit" class="btn btn-success">
-                                                    <i class="bi bi-download me-2"></i>Load Sample Free Proxies
-                                                </button>
-                                            </form>
-                                        </div>
-                                        
-                                        <div class="mt-3">
-                                            <h6>How to Add Free Proxies:</h6>
-                                            <ol class="small">
-                                                <li>Click "Load Sample Free Proxies" above to see example formats</li>
-                                                <li>Visit one of the proxy sites above</li>
-                                                <li>Find a proxy from their list</li>
-                                                <li>Copy the proxy address (e.g., ip:port)</li>
-                                                <li>Switch to "Manual Entry" tab above</li>
-                                                <li>Paste in the format: <code>http://IP:PORT</code></li>
-                                            </ol>
-                                        </div>
-                                        
-                                        <div class="alert alert-info mt-3 mb-0">
-                                            <i class="bi bi-info-circle me-2"></i>
-                                            <small>We recommend using paid proxies for better reliability and performance. Free proxies should be used for testing only.</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Proxy Format Help Modal -->
-                <div class="modal fade" id="proxyFormatHelpModal" tabindex="-1">
-                    <div class="modal-dialog">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h5 class="modal-title">Proxy Format Help</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div id="format-help-content">
-                                    <!-- Content will be populated by JavaScript -->
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- Proxy List -->
                 {% if proxies or show_examples %}
                     <div class="table-responsive">
@@ -444,6 +320,129 @@
         </div>
     </div>
 </div>
+<!-- Add Proxy Modal - placed outside all dashboard-card divs to avoid CSS transform stacking context issues -->
+<div class="modal fade" id="addProxyModal" tabindex="-1" aria-labelledby="addProxyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addProxyModalLabel">Add New Proxy</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="nav nav-tabs" id="addProxyTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab">Manual Entry</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="free-proxies-tab" data-bs-toggle="tab" data-bs-target="#free-proxies" type="button" role="tab">Free Proxies</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content mt-3" id="addProxyTabContent">
+                    <!-- Manual Entry Tab -->
+                    <div class="tab-pane fade show active" id="manual" role="tabpanel">
+                        <form method="post" data-action="add">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="add">
+                            <div class="mb-3">
+                                <label for="proxy_url" class="form-label">Proxy URL</label>
+                                <input type="text" class="form-control form-control-dashboard" name="proxy_url" id="proxy_url" placeholder="e.g., http://username:password@host:port" required>
+                                <div class="form-text">Enter proxy in standard format with authentication if required.</div>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="activateProxy" name="activateProxy" checked>
+                                <label class="form-check-label" for="activateProxy">Activate proxy immediately</label>
+                            </div>
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">Proxy Format Examples:</h6>
+                                <code class="d-block">http://proxy.example.com:8080</code>
+                                <code class="d-block">socks5://127.0.0.1:9050</code>
+                                <code class="d-block">http://user:pass@proxy.example.com:8080</code>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Add Proxy</button>
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        </form>
+                    </div>
+
+                    <!-- Free Proxies Tab -->
+                    <div class="tab-pane fade" id="free-proxies" role="tabpanel">
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            <strong>Warning:</strong> Free proxies may be unreliable and less secure than paid proxies.
+                        </div>
+
+                        <h6>Popular Free Proxy Sources:</h6>
+                        <div class="row">
+                            {% for source in free_proxy_sources %}
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <h6 class="card-title">{{ source.name }}</h6>
+                                        <p class="card-text small text-muted">{{ source.description }}</p>
+                                        <a href="{{ source.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-box-arrow-up-right me-1"></i>Visit Site
+                                        </a>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary ms-2" onclick="showProxyFormatHelp('{{ source.name }}')">
+                                            <i class="bi bi-question-circle me-1"></i>Format Help
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <div class="mt-3">
+                            <form method="post" data-action="load_free_proxies">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="load_free_proxies">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-download me-2"></i>Load Sample Free Proxies
+                                </button>
+                            </form>
+                        </div>
+
+                        <div class="mt-3">
+                            <h6>How to Add Free Proxies:</h6>
+                            <ol class="small">
+                                <li>Click "Load Sample Free Proxies" above to see example formats</li>
+                                <li>Visit one of the proxy sites above</li>
+                                <li>Find a proxy from their list</li>
+                                <li>Copy the proxy address (e.g., ip:port)</li>
+                                <li>Switch to "Manual Entry" tab above</li>
+                                <li>Paste in the format: <code>http://IP:PORT</code></li>
+                            </ol>
+                        </div>
+
+                        <div class="alert alert-info mt-3 mb-0">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>We recommend using paid proxies for better reliability and performance. Free proxies should be used for testing only.</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Proxy Format Help Modal - placed outside all dashboard-card divs -->
+<div class="modal fade" id="proxyFormatHelpModal" tabindex="-1" aria-labelledby="proxyFormatHelpModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="proxyFormatHelpModalLabel">Proxy Format Help</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="format-help-content">
+                    <!-- Content will be populated by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -487,7 +486,7 @@ function handleAjaxForms() {
     if (addForm) {
         addForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            submitAjaxForm(this, 'Proxy added successfully!', true);
+            submitAjaxForm(this, 'Proxy added successfully!', false);
         });
     }
     
@@ -496,7 +495,7 @@ function handleAjaxForms() {
     if (loadFreeForm) {
         loadFreeForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            submitAjaxForm(this, 'Sample free proxies loaded! Check the notifications above.', true);
+            submitAjaxForm(this, 'Sample free proxies loaded! Check the notifications above.', false);
         });
     }
 }
@@ -555,16 +554,18 @@ function submitAjaxForm(form, successMessage, reloadAfter = false) {
             if (data.success) {
                 // Show success message
                 showMessage(successMessage, 'success');
-                
-                // Reload page if needed
-                if (reloadAfter) {
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1000);
-                } else {
-                    // Just update the specific element if needed
-                    updateProxyStatus(action, formData.get('proxy_id'));
+
+                // Close any open modal
+                const openModal = document.querySelector('.modal.show');
+                if (openModal) {
+                    const bsModal = bootstrap.Modal.getInstance(openModal);
+                    if (bsModal) bsModal.hide();
                 }
+
+                // Reload the page after a short delay to reflect changes
+                setTimeout(() => {
+                    location.reload();
+                }, 1200);
             } else {
                 showMessage(data.message || 'Operation failed', 'error');
             }
