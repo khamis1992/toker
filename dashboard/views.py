@@ -266,6 +266,118 @@ def proxy_management(request):
 
 
 @login_required
+def api_fetch_free_proxies(request):
+    """API endpoint to fetch free proxies from public sources and return them as JSON."""
+    import requests as req
+    from bs4 import BeautifulSoup
+
+    source = request.GET.get('source', 'proxyscrape')
+    proxies = []
+    error = None
+
+    try:
+        if source == 'proxyscrape':
+            # ProxyScrape public API - returns plain text ip:port list
+            url = 'https://api.proxyscrape.com/v2/?request=displayproxies&protocol=http&timeout=5000&country=all&ssl=all&anonymity=all&limit=50'
+            r = req.get(url, timeout=10)
+            r.raise_for_status()
+            lines = [line.strip() for line in r.text.splitlines() if line.strip()]
+            proxies = [f'http://{line}' for line in lines if ':' in line]
+
+        elif source == 'geonode':
+            # GeoNode public API - returns JSON
+            url = 'https://proxylist.geonode.com/api/proxy-list?limit=50&page=1&sort_by=lastChecked&sort_type=desc&protocols=http,https'
+            r = req.get(url, timeout=10)
+            r.raise_for_status()
+            data = r.json()
+            for item in data.get('data', []):
+                ip = item.get('ip', '')
+                port = item.get('port', '')
+                protocols = item.get('protocols', ['http'])
+                proto = protocols[0] if protocols else 'http'
+                if ip and port:
+                    proxies.append(f'{proto}://{ip}:{port}')
+
+        elif source == 'freeproxylist':
+            # free-proxy-list.net - HTML scraping
+            url = 'https://free-proxy-list.net/'
+            headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'}
+            r = req.get(url, timeout=10, headers=headers)
+            r.raise_for_status()
+            soup = BeautifulSoup(r.text, 'html.parser')
+            table = soup.find('table')
+            if table:
+                for row in table.find_all('tr')[1:]:
+                    cols = row.find_all('td')
+                    if len(cols) >= 2:
+                        ip = cols[0].text.strip()
+                        port = cols[1].text.strip()
+                        https = cols[6].text.strip() if len(cols) > 6 else 'no'
+                        proto = 'https' if https.lower() == 'yes' else 'http'
+                        if ip and port and ip != 'IP Address':
+                            proxies.append(f'{proto}://{ip}:{port}')
+                            if len(proxies) >= 50:
+                                break
+
+    except Exception as e:
+        error = str(e)
+
+    # Filter out already-existing proxies
+    existing_urls = set(Proxy.objects.values_list('proxy_url', flat=True))
+    new_proxies = [p for p in proxies if p not in existing_urls]
+
+    return JsonResponse({
+        'success': error is None,
+        'source': source,
+        'proxies': new_proxies,
+        'total_fetched': len(proxies),
+        'new_count': len(new_proxies),
+        'already_exists': len(proxies) - len(new_proxies),
+        'error': error,
+    })
+
+
+@login_required
+def api_load_free_proxies(request):
+    """API endpoint to save a list of fetched free proxies into the database."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        proxy_list = body.get('proxies', [])
+        activate = body.get('activate', True)
+
+        if not proxy_list:
+            return JsonResponse({'success': False, 'message': 'No proxies provided'})
+
+        added = 0
+        skipped = 0
+        existing_urls = set(Proxy.objects.values_list('proxy_url', flat=True))
+
+        for proxy_url in proxy_list:
+            proxy_url = proxy_url.strip()
+            if not proxy_url:
+                continue
+            if proxy_url in existing_urls:
+                skipped += 1
+                continue
+            Proxy.objects.create(proxy_url=proxy_url, is_active=activate)
+            existing_urls.add(proxy_url)
+            added += 1
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Successfully loaded {added} proxies ({skipped} already existed).',
+            'added': added,
+            'skipped': skipped,
+        })
+
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error loading proxies: {str(e)}'})
+
+
+@login_required
 def bot_control(request):
     """View for controlling bot sessions."""
     if request.method == 'POST':

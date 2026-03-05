@@ -11,4 +11,6 @@ urlpatterns = [
     path('session/<str:session_id>/', views.session_detail, name='session_detail'),
     path('logs/', views.logs_view, name='logs'),
     path('api/update-viewer-stats/', views.api_update_viewer_stats, name='api_update_viewer_stats'),
+    path('api/fetch-free-proxies/', views.api_fetch_free_proxies, name='api_fetch_free_proxies'),
+    path('api/load-free-proxies/', views.api_load_free_proxies, name='api_load_free_proxies'),
 ]
