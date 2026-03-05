@@ -6,7 +6,7 @@ from django.contrib import messages
 import json
 import uuid
 from datetime import datetime
-from bot_management.models import BotConfiguration, Proxy, BotSession, Viewer
+from bot_management.models import BotConfiguration, Proxy, BotSession, Viewer, ProxyAutoFetchSettings
 
 
 @login_required
@@ -375,6 +375,59 @@ def api_load_free_proxies(request):
 
     except Exception as e:
         return JsonResponse({'success': False, 'message': f'Error loading proxies: {str(e)}'})
+
+
+@login_required
+def api_get_autofetch_settings(request):
+    """Return the current auto-fetch settings as JSON."""
+    s = ProxyAutoFetchSettings.get_settings()
+    return JsonResponse({
+        'success': True,
+        'is_enabled': s.is_enabled,
+        'interval_minutes': s.interval_minutes,
+        'use_proxyscrape': s.use_proxyscrape,
+        'use_geonode': s.use_geonode,
+        'use_freeproxylist': s.use_freeproxylist,
+        'activate_on_load': s.activate_on_load,
+        'last_run': s.last_run.isoformat() if s.last_run else None,
+        'last_run_added': s.last_run_added,
+        'last_run_skipped': s.last_run_skipped,
+        'interval_choices': [
+            {'value': v, 'label': l}
+            for v, l in ProxyAutoFetchSettings.INTERVAL_CHOICES
+        ],
+    })
+
+
+@login_required
+def api_save_autofetch_settings(request):
+    """Save auto-fetch settings and reschedule the background job."""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'POST required'}, status=405)
+    try:
+        body = json.loads(request.body)
+        s = ProxyAutoFetchSettings.get_settings()
+        s.is_enabled        = bool(body.get('is_enabled', s.is_enabled))
+        s.interval_minutes  = int(body.get('interval_minutes', s.interval_minutes))
+        s.use_proxyscrape   = bool(body.get('use_proxyscrape', s.use_proxyscrape))
+        s.use_geonode       = bool(body.get('use_geonode', s.use_geonode))
+        s.use_freeproxylist = bool(body.get('use_freeproxylist', s.use_freeproxylist))
+        s.activate_on_load  = bool(body.get('activate_on_load', s.activate_on_load))
+        s.save()
+
+        # Reschedule the background job with the new interval
+        try:
+            from dashboard.scheduler import reschedule_job
+            reschedule_job(s.interval_minutes)
+        except Exception:
+            pass  # Scheduler may not be running in dev reloader child
+
+        return JsonResponse({
+            'success': True,
+            'message': f'Auto-fetch settings saved. Scheduler is {"enabled" if s.is_enabled else "disabled"}.'
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'message': f'Error saving settings: {str(e)}'})
 
 
 @login_required

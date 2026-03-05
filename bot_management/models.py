@@ -69,6 +69,51 @@ class Proxy(models.Model):
         verbose_name_plural = "Proxies"
 
 
+class ProxyAutoFetchSettings(models.Model):
+    """Singleton model to store auto-fetch scheduler settings."""
+
+    INTERVAL_CHOICES = [
+        (15,   'Every 15 minutes'),
+        (30,   'Every 30 minutes'),
+        (60,   'Every 1 hour'),
+        (180,  'Every 3 hours'),
+        (360,  'Every 6 hours'),
+        (720,  'Every 12 hours'),
+        (1440, 'Every 24 hours'),
+    ]
+
+    is_enabled = models.BooleanField(default=False)
+    interval_minutes = models.IntegerField(default=60, choices=INTERVAL_CHOICES)
+
+    # Which sources to fetch from
+    use_proxyscrape   = models.BooleanField(default=True)
+    use_geonode       = models.BooleanField(default=True)
+    use_freeproxylist = models.BooleanField(default=False)
+
+    activate_on_load  = models.BooleanField(default=True)
+    last_run          = models.DateTimeField(null=True, blank=True)
+    last_run_added    = models.IntegerField(default=0)
+    last_run_skipped  = models.IntegerField(default=0)
+    updated_at        = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "Proxy Auto-Fetch Settings"
+
+    def save(self, *args, **kwargs):
+        # Enforce singleton — only one row allowed
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_settings(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    class Meta:
+        verbose_name = "Proxy Auto-Fetch Settings"
+        verbose_name_plural = "Proxy Auto-Fetch Settings"
+
+
 class BotSession(models.Model):
     """Model to track bot sessions."""
     

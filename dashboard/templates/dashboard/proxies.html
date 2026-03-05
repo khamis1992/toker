@@ -380,6 +380,88 @@
         </div>
     </div>
 </div>
+<!-- Auto-Fetch Settings Panel -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card dashboard-card" id="autoFetchCard">
+            <div class="card-header bg-white border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-robot me-2 text-success"></i>Automatic Proxy Fetcher
+                </h5>
+                <div class="d-flex align-items-center gap-3">
+                    <span id="autoFetchStatusBadge" class="badge bg-secondary">Loading...</span>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="autoFetchToggle" role="switch" style="width:2.5em;height:1.3em;">
+                        <label class="form-check-label fw-semibold" for="autoFetchToggle">Enable Auto-Fetch</label>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">When enabled, the system will automatically fetch fresh proxies from the selected sources on a schedule — no manual action required.</p>
+
+                <div class="row g-4">
+                    <!-- Interval -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold"><i class="bi bi-clock me-1"></i>Fetch Interval</label>
+                        <select class="form-select" id="autoFetchInterval">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+
+                    <!-- Sources -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold"><i class="bi bi-database me-1"></i>Sources to Fetch From</label>
+                        <div class="d-flex flex-column gap-2 mt-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="afProxyscrape">
+                                <label class="form-check-label" for="afProxyscrape">
+                                    <i class="bi bi-globe-americas text-primary me-1"></i> ProxyScrape
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="afGeonode">
+                                <label class="form-check-label" for="afGeonode">
+                                    <i class="bi bi-geo-alt text-success me-1"></i> GeoNode
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="afFreeproxylist">
+                                <label class="form-check-label" for="afFreeproxylist">
+                                    <i class="bi bi-list-ul text-warning me-1"></i> Free-Proxy-List.net
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Options + Last Run -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold"><i class="bi bi-gear me-1"></i>Options</label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" id="afActivateOnLoad">
+                            <label class="form-check-label" for="afActivateOnLoad">Activate proxies immediately</label>
+                        </div>
+                        <div class="mt-3 p-3 bg-light rounded" id="afLastRunBox">
+                            <div class="small text-muted">Last run</div>
+                            <div class="fw-semibold" id="afLastRun">Never</div>
+                            <div class="small text-muted mt-1">Added: <span id="afLastAdded">—</span> &nbsp; Skipped: <span id="afLastSkipped">—</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-4 align-items-center">
+                    <button type="button" class="btn btn-primary" id="btnSaveAutoFetch">
+                        <i class="bi bi-save me-1"></i> Save Settings
+                    </button>
+                    <button type="button" class="btn btn-outline-success" id="btnRunNow">
+                        <i class="bi bi-play-circle me-1"></i> Run Now
+                    </button>
+                    <div id="afSaveStatus" class="ms-2 small"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Add Proxy Modal - placed outside all dashboard-card divs to avoid CSS transform stacking context issues -->
 <div class="modal fade" id="addProxyModal" tabindex="-1" aria-labelledby="addProxyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -893,5 +975,216 @@ function showProxyFormatHelp(sourceName) {
         helpModal.show();
     }
 }
+
+// ============================================================
+// Auto-Fetch Settings Feature
+// ============================================================
+(function() {
+    function getCsrf() {
+        const m = document.querySelector('meta[name="csrf-token"]');
+        return m ? m.getAttribute('content') : '';
+    }
+
+    function setAfStatus(msg, cls) {
+        const el = document.getElementById('afSaveStatus');
+        if (el) el.innerHTML = msg ? `<span class="text-${cls}">${msg}</span>` : '';
+    }
+
+    function loadSettings() {
+        fetch('/api/autofetch-settings/', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+
+            // Toggle
+            const toggle = document.getElementById('autoFetchToggle');
+            if (toggle) toggle.checked = data.is_enabled;
+
+            // Badge
+            const badge = document.getElementById('autoFetchStatusBadge');
+            if (badge) {
+                badge.textContent = data.is_enabled ? 'Active' : 'Disabled';
+                badge.className = `badge ${data.is_enabled ? 'bg-success' : 'bg-secondary'}`;
+            }
+
+            // Interval dropdown
+            const sel = document.getElementById('autoFetchInterval');
+            if (sel) {
+                sel.innerHTML = '';
+                (data.interval_choices || []).forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.value;
+                    opt.textContent = c.label;
+                    if (c.value === data.interval_minutes) opt.selected = true;
+                    sel.appendChild(opt);
+                });
+            }
+
+            // Sources
+            const ps = document.getElementById('afProxyscrape');
+            const gn = document.getElementById('afGeonode');
+            const fp = document.getElementById('afFreeproxylist');
+            if (ps) ps.checked = data.use_proxyscrape;
+            if (gn) gn.checked = data.use_geonode;
+            if (fp) fp.checked = data.use_freeproxylist;
+
+            // Activate on load
+            const al = document.getElementById('afActivateOnLoad');
+            if (al) al.checked = data.activate_on_load;
+
+            // Last run
+            const lr = document.getElementById('afLastRun');
+            const la = document.getElementById('afLastAdded');
+            const ls = document.getElementById('afLastSkipped');
+            if (lr) lr.textContent = data.last_run ? new Date(data.last_run).toLocaleString() : 'Never';
+            if (la) la.textContent = data.last_run_added !== null ? data.last_run_added : '—';
+            if (ls) ls.textContent = data.last_run_skipped !== null ? data.last_run_skipped : '—';
+        })
+        .catch(() => {});
+    }
+
+    // Update badge when toggle changes
+    const toggle = document.getElementById('autoFetchToggle');
+    if (toggle) {
+        toggle.addEventListener('change', function() {
+            const badge = document.getElementById('autoFetchStatusBadge');
+            if (badge) {
+                badge.textContent = this.checked ? 'Active' : 'Disabled';
+                badge.className = `badge ${this.checked ? 'bg-success' : 'bg-secondary'}`;
+            }
+        });
+    }
+
+    // Save Settings button
+    const btnSave = document.getElementById('btnSaveAutoFetch');
+    if (btnSave) {
+        btnSave.addEventListener('click', function() {
+            const origText = this.innerHTML;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Saving...';
+            this.disabled = true;
+            setAfStatus('', '');
+
+            const payload = {
+                is_enabled:       document.getElementById('autoFetchToggle').checked,
+                interval_minutes: parseInt(document.getElementById('autoFetchInterval').value),
+                use_proxyscrape:  document.getElementById('afProxyscrape').checked,
+                use_geonode:      document.getElementById('afGeonode').checked,
+                use_freeproxylist:document.getElementById('afFreeproxylist').checked,
+                activate_on_load: document.getElementById('afActivateOnLoad').checked,
+            };
+
+            fetch('/api/autofetch-settings/save/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': getCsrf(),
+                },
+                body: JSON.stringify(payload),
+            })
+            .then(r => r.json())
+            .then(data => {
+                this.innerHTML = origText;
+                this.disabled = false;
+                if (data.success) {
+                    setAfStatus(`<i class="bi bi-check-circle me-1"></i>${data.message}`, 'success');
+                } else {
+                    setAfStatus(`<i class="bi bi-x-circle me-1"></i>${data.message}`, 'danger');
+                }
+            })
+            .catch(err => {
+                this.innerHTML = origText;
+                this.disabled = false;
+                setAfStatus(`Network error: ${err.message}`, 'danger');
+            });
+        });
+    }
+
+    // Run Now button — triggers an immediate fetch using the existing free proxy loader
+    const btnRunNow = document.getElementById('btnRunNow');
+    if (btnRunNow) {
+        btnRunNow.addEventListener('click', function() {
+            const origText = this.innerHTML;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Running...';
+            this.disabled = true;
+            setAfStatus('<i class="bi bi-hourglass-split me-1"></i> Fetching proxies from all enabled sources...', 'info');
+
+            // Collect which sources are enabled
+            const sources = [];
+            if (document.getElementById('afProxyscrape').checked) sources.push('proxyscrape');
+            if (document.getElementById('afGeonode').checked) sources.push('geonode');
+            if (document.getElementById('afFreeproxylist').checked) sources.push('freeproxylist');
+
+            if (sources.length === 0) {
+                this.innerHTML = origText;
+                this.disabled = false;
+                setAfStatus('No sources selected. Please enable at least one source.', 'warning');
+                return;
+            }
+
+            const activate = document.getElementById('afActivateOnLoad').checked;
+            let totalAdded = 0;
+            let totalSkipped = 0;
+            let allProxies = [];
+
+            // Fetch from each source sequentially then load all
+            const fetchNext = (idx) => {
+                if (idx >= sources.length) {
+                    // Load all collected proxies
+                    if (allProxies.length === 0) {
+                        this.innerHTML = origText;
+                        this.disabled = false;
+                        setAfStatus('No new proxies found across all sources.', 'warning');
+                        return;
+                    }
+                    fetch('/api/load-free-proxies/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': getCsrf(),
+                        },
+                        body: JSON.stringify({ proxies: allProxies, activate }),
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        this.innerHTML = origText;
+                        this.disabled = false;
+                        if (data.success) {
+                            setAfStatus(`<i class="bi bi-check-circle me-1"></i> Run complete: <strong>${data.added}</strong> proxies added, ${data.skipped} skipped.`, 'success');
+                            // Refresh last-run stats
+                            setTimeout(loadSettings, 800);
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            setAfStatus(`<i class="bi bi-x-circle me-1"></i> ${data.message}`, 'danger');
+                        }
+                    })
+                    .catch(err => {
+                        this.innerHTML = origText;
+                        this.disabled = false;
+                        setAfStatus(`Network error: ${err.message}`, 'danger');
+                    });
+                    return;
+                }
+
+                fetch(`/api/fetch-free-proxies/?source=${sources[idx]}`, {
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.proxies) allProxies = allProxies.concat(data.proxies);
+                    fetchNext(idx + 1);
+                })
+                .catch(() => fetchNext(idx + 1));
+            };
+
+            fetchNext(0);
+        });
+    }
+
+    // Load settings on page load
+    loadSettings();
+})();
+// ============================================================
 </script>
 {% endblock %}
