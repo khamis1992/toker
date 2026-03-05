@@ -191,16 +191,33 @@
                         <label class="form-label">Session Configuration</label>
                         <div class="card bg-light">
                             <div class="card-body">
+                                {% if current_config %}
                                 <div class="d-flex justify-content-between">
                                     <div>
                                         <div class="fw-medium">Live Stream URL</div>
-                                        <small class="text-muted">https://www.tiktok.com/@khamish92/live</small>
+                                        <small class="text-muted">{{ current_config.live_url }}</small>
                                     </div>
                                     <div class="text-end">
                                         <div class="fw-medium">Viewers</div>
-                                        <small class="text-muted">3</small>
+                                        <small class="text-muted">{{ current_config.num_viewers }}</small>
                                     </div>
                                 </div>
+                                <div class="mt-2 d-flex justify-content-between">
+                                    <div>
+                                        <div class="fw-medium">Mode</div>
+                                        <small class="text-muted">{{ current_config.headless|yesno:"Headless,Visible" }}</small>
+                                    </div>
+                                    <div class="text-end">
+                                        <div class="fw-medium">Max Duration</div>
+                                        <small class="text-muted">{{ current_config.session_max_duration }}s</small>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="text-center text-muted py-2">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>
+                                    No configuration found. <a href="{% url 'dashboard:settings' %}">Configure settings first</a>.
+                                </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

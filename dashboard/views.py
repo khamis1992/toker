@@ -472,10 +472,17 @@ def bot_control(request):
     # GET request
     active_sessions = BotSession.objects.exclude(status__in=['completed', 'failed', 'stopped'])
     recent_sessions = BotSession.objects.all().order_by('-start_time')[:10]
-    
+
+    # Load the latest saved configuration so the modal shows real values
+    try:
+        current_config = BotConfiguration.objects.filter(created_by=request.user).latest('updated_at')
+    except BotConfiguration.DoesNotExist:
+        current_config = None
+
     context = {
         'active_sessions': active_sessions,
         'recent_sessions': recent_sessions,
+        'current_config': current_config,
     }
     
     return render(request, 'dashboard/control.html', context)
